@@ -3,9 +3,10 @@ miniircd -- A (very) simple Internet Relay Chat (IRC) server
 
 Description:
 
-    miniircd is a small and limited IRC server. Yet, it's a functional
-    alternative to a full-blown ircd if you want to run a small IRC
-    server for private or internal usage.
+    miniircd is a small and limited IRC server written in Python.
+    Despite its size, it is a functional alternative to a full-blown
+    ircd for private or internal use. Installation is simple; no
+    configuration is required.
 
     Features:
 
@@ -43,6 +44,10 @@ Homepage:
 
     http://joel.rosdahl.net/projects/#miniircd
 
-Authors:
+Author:
 
     Joel Rosdahl <joel@rosdahl.net>
+
+Thanks to:
+
+    Linus Sjöberg

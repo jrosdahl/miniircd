@@ -211,8 +211,7 @@ class Client(object):
             self.__handleCommand = self.__commandHandler
 
     def __commandHandler(self, command, arguments):
-        server = self.__server
-        if command == "JOIN":
+        def joinHandler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 461 %s JOIN :Not enough parameters" % (
@@ -270,7 +269,8 @@ class Client(object):
                                     server.name,
                                     self.nickname,
                                     channelname))
-        elif command == "LIST":
+
+        def listHandler():
             if len(arguments) < 1:
                 channels = server.channels
             else:
@@ -289,7 +289,8 @@ class Client(object):
                         channel.topic))
             self.message(
                 ":%s 323 %s :End of LIST" % (server.name, self.nickname))
-        elif command == "MODE":
+
+        def modeHandler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 461 %s MODE :Not enough parameters" % (
@@ -325,7 +326,8 @@ class Client(object):
                             server.name,
                             self.nickname,
                             targetname))
-        elif command == "NICK":
+
+        def nickHandler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 431 :No nickname given" % server.name)
@@ -356,8 +358,9 @@ class Client(object):
                             self.user,
                             self.host,
                             self.nickname),
+
                         True)
-        elif command in ("NOTICE", "PRIVMSG"):
+        def noticeAndPrivmsgHandler():
             if len(arguments) == 0:
                 self.message(":%s 411 %s :No recipient given" % (
                     server.name,
@@ -391,7 +394,8 @@ class Client(object):
                             server.name,
                             self.nickname,
                             targetname))
-        elif command == "PART":
+
+        def partHandler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 461 %s PART :Not enough parameters" % (
@@ -426,7 +430,8 @@ class Client(object):
                             True)
                         del self.__channels[irc_lower(channelname)]
                         server.removeMemberFromChannel(self, channelname)
-        elif command == "PING":
+
+        def pingHandler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 409 %s :No origin specified" % (
@@ -438,15 +443,18 @@ class Client(object):
                         server.name,
                         server.name,
                         arguments[0]))
-        elif command == "PONG":
+
+        def pongHandler():
             pass
-        elif command == "QUIT":
+
+        def quitHandler():
             if len(arguments) < 1:
                 quitmsg = self.nickname
             else:
                 quitmsg = arguments[0]
             self.disconnect(quitmsg)
-        elif command == "TOPIC":
+
+        def topicHandler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 461 %s TOPIC :Not enough parameters" % (
@@ -485,7 +493,8 @@ class Client(object):
                         ":%s 442 %s :You're not on that channel" % (
                             server.name,
                             channelname))
-        elif command == "WHO":
+
+        def whoHandler():
             if len(arguments) < 1:
                 pass
             else:
@@ -508,11 +517,30 @@ class Client(object):
                             server.name,
                             self.nickname,
                             targetname))
-        else:
+
+        handlerTable = {
+            "JOIN": joinHandler,
+            "LIST": listHandler,
+            "MODE": modeHandler,
+            "NICK": nickHandler,
+            "NOTICE": noticeAndPrivmsgHandler,
+            "PART": partHandler,
+            "PING": pingHandler,
+            "PONG": pongHandler,
+            "PRIVMSG": noticeAndPrivmsgHandler,
+            "QUIT": quitHandler,
+            "TOPIC": topicHandler,
+            "WHO": whoHandler,
+        }
+        server = self.__server
+        try:
+            handlerTable[command]()
+        except KeyError:
             self.message(":%s 421 %s %s :Unknown command" % (
                 server.name,
                 self.nickname,
                 command))
+
 
     def socketReadableNotification(self):
         try:

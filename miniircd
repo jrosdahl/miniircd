@@ -796,7 +796,13 @@ def main(argv):
         elif opt in ("-p", "--password"):
             password = val.lower()
         elif opt == "--ports":
-            ports = [int(x) for x in re.split("[,\s]+", val)]
+            ports = []
+            for port in re.split("[,\s]+", val):
+                try:
+                    ports.append(int(port))
+                except ValueError:
+                    sys.stderr.write("Bad port: \"%s\".\n" % port)
+                    sys.exit(1)
         elif opt in ("-v", "--verbose"):
             verbose = True
     server = Server(ports, password, verbose)

@@ -28,16 +28,20 @@ Description:
 
 Requirements:
 
-  * Python 2.3 or newer. Get it at http://www.python.org.
+    Python 2.3 or newer. Get it at http://www.python.org.
 
 Installation:
 
-  * None. Just run "./miniircd --help" (or "python miniircd --help")
+    None. Just run "./miniircd --help" (or "python miniircd --help")
     to get some help.
 
 License:
 
     See COPYING.
+
+Homepage:
+
+    http://joel.rosdahl.net/projects/#miniircd
 
 Authors:
 

@@ -59,7 +59,7 @@ class Client(object):
         self.__writebuffer = ""
         self.__nickname = None
         self.__user = None
-        self.__host = socket.getpeername()[0]
+        self.__host, self.__port = socket.getpeername()
         self.__realname = None
         self.__channels = {} # irc_lower(Channel name) --> Channel
         if self.__server.password:
@@ -514,7 +514,7 @@ class Client(object):
         self.message("ERROR :%s" % quitmsg)
         addr = self.socket.getpeername()
         self.__server.printInfo("Disconnected connection from %s:%s." % (
-            addr[0], addr[1]))
+            self.__host, self.__port))
         self.socket.close()
         self.__server.removeClient(self, quitmsg)
 

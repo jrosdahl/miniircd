@@ -512,7 +512,6 @@ class Client(object):
 
     def disconnect(self, quitmsg):
         self.message("ERROR :%s" % quitmsg)
-        addr = self.socket.getpeername()
         self.__server.printInfo("Disconnected connection from %s:%s." % (
             self.__host, self.__port))
         self.socket.close()

@@ -1,5 +1,3 @@
 * Use optparse.
 
-* Remove/disable debug code.
-
 * Don't use a set in client.messageChannel.

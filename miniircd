@@ -154,8 +154,6 @@ class Client(object):
                     arguments = string.split(y[0])
                     if len(y) == 2:
                         arguments.append(y[1])
-            if command == "DEBUG":
-                self.__server.debug()
             self.__handleCommand(command, arguments)
 
     def __passHandler(self, command, arguments):
@@ -634,16 +632,6 @@ class Server(object):
         self.__clients = {}  # Socket --> Client instance.
         self.__nicknames = {} # irc_lower(Nickname) --> Client instance.
         self.__name = socket.getfqdn()[:63] # Server name limit from the RFC.
-
-    def debug(self):
-        print "channels:"
-        print self.__channels
-        print
-        print "clients:"
-        print self.__clients
-        print
-        print "nicknames:"
-        print self.__nicknames
 
     def daemonize(self):
         try:

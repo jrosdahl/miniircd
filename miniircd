@@ -23,11 +23,12 @@ version = "0.0.0"
 
 import getopt
 import select
+import sets
 import socket
 import string
 import sys
 import re
-import sets
+import time
 
 class Channel(object):
     def __init__(self, server, name):
@@ -74,6 +75,8 @@ class Client(object):
         self.__socket = socket
         self.__readbuffer = ""
         self.__writebuffer = ""
+        self.__timestamp = time.time()
+        self.__sentPing = False
         self.__nickname = None
         self.__user = None
         self.__host, self.__port = socket.getpeername()
@@ -87,6 +90,10 @@ class Client(object):
     def getSocket(self):
         return self.__socket
     socket = property(getSocket)
+
+    def getTimestamp(self):
+        return self.__timestamp
+    timestamp = property(getTimestamp)
 
     def getChannels(self):
         return self.__channels
@@ -114,6 +121,14 @@ class Client(object):
     def getRealname(self):
         return self.__realname
     realname = property(getRealname)
+
+    def checkAliveness(self):
+        now = time.time()
+        if self.timestamp + 180 < now:
+            self.disconnect("ping timeout")
+        if not self.__sentPing and self.timestamp + 90 < now:
+            self.message("PING :%s" % self.__server.name)
+            self.__sentPing = True
 
     def writeQueueSize(self):
         return len(self.__writebuffer)
@@ -554,6 +569,8 @@ class Client(object):
         else:
             self.__readbuffer += data
             self.__parseReadBuffer()
+            self.__timestamp = time.time()
+            self.__sentPing = False
 
     def socketWritableNotification(self):
         try:
@@ -564,8 +581,8 @@ class Client(object):
 
     def disconnect(self, quitmsg):
         self.message("ERROR :%s" % quitmsg)
-        self.__server.printInfo("Disconnected connection from %s:%s." % (
-            self.__host, self.__port))
+        self.__server.printInfo("Disconnected connection from %s:%s (%s)." % (
+            self.__host, self.__port, quitmsg))
         self.socket.close()
         self.__server.removeClient(self, quitmsg)
 
@@ -679,12 +696,15 @@ class Server(object):
             serversockets.append(s)
             del s
             self.printInfo("Listening on port %d." % port)
+
+        lastAlivenessCheck = time.time()
         while True:
             iwtd, owtd, ewtd = select.select(
                 serversockets + [x.socket for x in self.__clients.values()],
                 [x.socket for x in self.__clients.values()
                           if x.writeQueueSize() > 0],
-                [])
+                [],
+                10)
             for x in iwtd:
                 if x in self.__clients:
                     self.__clients[x].socketReadableNotification()
@@ -695,6 +715,11 @@ class Server(object):
                         addr[0], addr[1]))
             for x in owtd:
                 self.__clients[x].socketWritableNotification()
+            now = time.time()
+            if lastAlivenessCheck + 10 < now:
+                for client in self.__clients.values():
+                    client.checkAliveness()
+                lastAlivenessCheck = now
 
 _alpha = "abcdefghijklmnopqrstuvwxyz"
 _special = "-[]\\`^{}"

@@ -1,0 +1,703 @@
+#! /usr/bin/env python2.3
+#
+# tag: miniircd main program
+
+version = "0.0.0"
+
+import getopt
+import select
+import socket
+import string
+import sys
+import re
+import sets
+
+class Channel(object):
+    def __init__(self, server, name):
+        self.__server = server
+        self.__name = name
+        self.__members = sets.Set()
+        self.__operators = sets.Set()
+        self.__voiced = sets.Set()
+        self.__topic = ""
+
+    def getName(self):
+        return self.__name
+    name = property(getName)
+
+    def getTopic(self):
+        return self.__topic
+    def setTopic(self, topic):
+        self.__topic = topic
+    topic = property(getTopic, setTopic)
+
+    def getMembers(self):
+        return self.__members
+    members = property(getMembers)
+
+    def addMember(self, client):
+        self.__members.add(client)
+
+    def removeClient(self, client):
+        for x in [self.__members, self.__operators, self.__voiced]:
+            x.discard(client)
+        if len(self.__members) == 0:
+            self.__server.removeChannel(self)
+
+class Client(object):
+    __linesep_regexp = re.compile("\r?\n")
+    # The RFC limit for nicknames is 9 characters, but what the heck.
+    __valid_nickname_regexp = re.compile(
+        "^[][\`_^{|}A-Za-z][][\`_^{|}A-Za-z0-9]{0,50}$")
+    __valid_channelname_regexp = re.compile(
+        "^[&#+!][^\x00\x07\x0a\x0d ,:]{0,50}$")
+
+    def __init__(self, server, socket):
+        self.__server = server
+        self.__socket = socket
+        self.__readbuffer = ""
+        self.__writebuffer = ""
+        self.__nickname = None
+        self.__user = None
+        self.__host = socket.getpeername()[0]
+        self.__realname = None
+        self.__channels = {} # irc_lower(Channel name) --> Channel
+        if self.__server.password:
+            self.__handleCommand = self.__passHandler
+        else:
+            self.__handleCommand = self.__registrationHandler
+
+    def getSocket(self):
+        return self.__socket
+    socket = property(getSocket)
+
+    def getChannels(self):
+        return self.__channels
+    channels = property(getChannels)
+
+    def getNickname(self):
+        return self.__nickname
+    def setNickname(self, nickname):
+        self.__nickname = nickname
+    nickname = property(getNickname, setNickname)
+    name = nickname
+
+    def getUser(self):
+        return self.__user
+    user = property(getUser)
+
+    def getHost(self):
+        return self.__host
+    host = property(getHost)
+
+    def getPrefix(self):
+        return "%s!%s@%s" % (self.nickname, self.user, self.host)
+    prefix = property(getPrefix)
+
+    def getRealname(self):
+        return self.__realname
+    realname = property(getRealname)
+
+    def writeQueueSize(self):
+        return len(self.__writebuffer)
+
+    def __parseReadBuffer(self):
+        lines = self.__linesep_regexp.split(self.__readbuffer)
+        self.__readbuffer = lines[-1]
+        lines = lines[:-1]
+        for line in lines:
+            if not line:
+                # Empty line. Ignore.
+                continue
+            x = line.split(" ", 1)
+            command = x[0].upper()
+            if len(x) == 1:
+                arguments = []
+            else:
+                y = string.split(x[1], " :", 1)
+                arguments = string.split(y[0])
+                if len(y) == 2:
+                    arguments.append(y[1])
+            if command == "DEBUG":
+                self.__server.debug()
+            self.__handleCommand(command, arguments)
+
+    def __passHandler(self, command, arguments):
+        server = self.__server
+        if command == "PASS":
+            if len(arguments) == 0:
+                self.message(
+                    ":%s 461 * PASS :Not enough parameters" % server.name)
+            else:
+                if arguments[0].lower() == server.password:
+                    self.__handleCommand = self.__registrationHandler
+                else:
+                    self.message(
+                        ":%s 464 :Password incorrect" % server.name)
+        elif command == "QUIT":
+            self.disconnect("Client quit")
+        else:
+            pass
+
+    def __registrationHandler(self, command, arguments):
+        server = self.__server
+        if command == "NICK":
+            if len(arguments) < 1:
+                self.message(
+                    ":%s 431 :No nickname given" % server.name)
+            else:
+                nick = arguments[0]
+                if server.getClient(nick):
+                    self.message(
+                        ":%s 433 * %s :Nickname is already in use" % (
+                            server.name,
+                            nick))
+                elif not self.__valid_nickname_regexp.match(nick):
+                    self.message(
+                        ":%s 432 * %s :Erroneous Nickname" % (
+                            server.name,
+                            nick))
+                else:
+                    self.__nickname = nick
+                    server.clientChangedNickname(self, None)
+        elif command == "USER":
+            if len(arguments) < 4:
+                self.message(
+                    ":%s 461 * USER :Not enough parameters" % server.name)
+            else:
+                self.__user = arguments[0]
+                self.__realname = arguments[3]
+        elif command == "QUIT":
+            self.disconnect("Client quit")
+        else:
+            pass
+        if self.nickname and self.user:
+            self.message(":%s 001 %s :Yo, welcome to IRC" % (
+                server.name,
+                self.nickname))
+            self.message(":%s 002 %s :Your host is %s, running version miniircd-%s" % (
+                server.name,
+                self.nickname,
+                server.name,
+                version))
+            self.message(":%s 003 %s :This server was created sometime" % (
+                server.name,
+                self.nickname))
+            self.message(":%s 004 %s :%s miniircd-%s o o" % (
+                server.name,
+                self.nickname,
+                server.name,
+                version))
+            self.__handleCommand = self.__commandHandler
+
+    def __commandHandler(self, command, arguments):
+        server = self.__server
+        if command == "JOIN":
+            if len(arguments) < 1:
+                self.message(
+                    ":%s 461 %s JOIN :Not enough parameters" % (
+                        server.name,
+                        self.nickname))
+            else:
+                if arguments[0] == "0":
+                    for channelname, channel in self.__channels.items():
+                        self.messageChannel(
+                            channel,
+                            ":%s PART %s" % (self.prefix, channelname),
+                            True)
+                        server.removeMemberFromChannel(self, channelname)
+                    self.__channels = {}
+                else:
+                    for channelname in arguments[0].split(","):
+                        if irc_lower(arguments[0]) in self.__channels:
+                            pass
+                        elif not self.__valid_channelname_regexp.match(channelname):
+                            self.message(
+                                ":%s 403 %s %s :No such channel" % (
+                                    server.name,
+                                    self.nickname,
+                                    channelname))
+                        else:
+                            server.addMemberToChannel(self, channelname)
+                            channel = server.getChannel(channelname)
+                            self.__channels[irc_lower(channelname)] = channel
+                            self.messageChannel(
+                                channel,
+                                ":%s JOIN %s" % (self.prefix, channelname),
+                                True)
+                            if channel.topic:
+                                self.message(
+                                    ":%s 332 %s %s :%s" % (
+                                        server.name,
+                                        self.nickname,
+                                        channel.name,
+                                        channel.topic))
+                            else:
+                                self.message(
+                                    ":%s 331 %s %s :No topic is set" % (
+                                        server.name,
+                                        self.nickname,
+                                        channel.name))
+                            self.message(
+                                ":%s 353 %s = %s :%s" % (
+                                    server.name,
+                                    self.nickname,
+                                    channelname,
+                                    " ".join([x.nickname
+                                              for x in channel.members])))
+                            self.message(
+                                ":%s 366 %s %s :End of NAMES list" % (
+                                    server.name,
+                                    self.nickname,
+                                    channelname))
+        elif command == "LIST":
+            if len(arguments) < 1:
+                channels = server.channels
+            else:
+                channels = []
+                for channelname in arguments[0].split(","):
+                    channel = server.getChannel(channelname)
+                    if channel:
+                        channels.append(channel)
+            for channel in channels:
+                self.message(
+                    ":%s 322 %s %s %d :%s" % (
+                        server.name,
+                        self.nickname,
+                        channel.name,
+                        len(channel.members),
+                        channel.topic))
+            self.message(
+                ":%s 323 %s :End of LIST" % (server.name, self.nickname))
+        elif command == "MODE":
+            if len(arguments) < 1:
+                self.message(
+                    ":%s 461 %s MODE :Not enough parameters" % (
+                        server.name,
+                        self.nickname))
+            else:
+                targetname = arguments[0]
+                channel = server.getChannel(targetname)
+                if channel:
+                    if len(arguments) > 1:
+                        modes = arguments[1]
+                        self.message(":%s 472 %s %s :Unknown MODE flag" % (
+                            server.name,
+                            self.nickname,
+                            modes))
+                    else:
+                        self.message(":%s 324 %s %s +" % (
+                            server.name,
+                            self.nickname,
+                            targetname))
+                else:
+                    if targetname == self.nickname:
+                        if len(arguments) == 1:
+                            self.message(
+                                ":%s 221 %s +" % (server.name, self.nickname))
+                        else:
+                            self.message(
+                                ":%s 501 %s :Unknown MODE flag" % (
+                                     server.name,
+                                     self.nickname))
+                    else:
+                        self.message(":%s 403 %s %s :That channel doesn't exist" % (
+                            server.name,
+                            self.nickname,
+                            targetname))
+        elif command == "NICK":
+            if len(arguments) < 1:
+                self.message(
+                    ":%s 431 :No nickname given" % server.name)
+            else:
+                newnick = arguments[0]
+                client = server.getClient(newnick)
+                if newnick == self.nickname:
+                    pass
+                elif client and client is not self:
+                    self.message(
+                        ":%s 433 %s %s :Nickname is already in use" % (
+                            server.name,
+                            self.nickname,
+                            newnick))
+                elif not self.__valid_nickname_regexp.match(newnick):
+                    self.message(
+                        ":%s 432 %s %s :Erroneous Nickname" % (
+                            server.name,
+                            self.nickname,
+                            newnick))
+                else:
+                    oldnickname = self.nickname
+                    self.nickname = newnick
+                    server.clientChangedNickname(self, oldnickname)
+                    self.messageRelated(
+                        ":%s!%s@%s NICK %s" % (
+                            oldnickname,
+                            self.user,
+                            self.host,
+                            self.nickname),
+                        True)
+        elif command in ("NOTICE", "PRIVMSG"):
+            if len(arguments) == 0:
+                self.message(":%s 411 %s :No recipient given" % (
+                    server.name,
+                    self.nickname))
+            elif len(arguments) == 1:
+                self.message(":%s 412 %s :No text to send" % (
+                    server.name,
+                    self.nickname))
+            else:
+                targetname = arguments[0]
+                message = arguments[1]
+                client = server.getClient(targetname)
+                if client:
+                    client.message(":%s %s %s :%s" % (
+                        self.prefix,
+                        command,
+                        targetname,
+                        message))
+                else:
+                    channel = server.getChannel(targetname)
+                    if channel:
+                        self.messageChannel(
+                            channel,
+                            ":%s %s %s :%s" % (
+                                self.prefix,
+                                command,
+                                channel.name,
+                                message))
+                    else:
+                        self.message(":%s 401 %s %s :No such nick/channel" % (
+                            server.name,
+                            self.nickname,
+                            targetname))
+        elif command == "PART":
+            if len(arguments) < 1:
+                self.message(
+                    ":%s 461 %s PART :Not enough parameters" % (
+                        server.name,
+                        self.nickname))
+            else:
+                if len(arguments) > 1:
+                    partmsg = arguments[1]
+                else:
+                    partmsg = self.nickname
+                for channelname in arguments[0].split(","):
+                    if not self.__valid_channelname_regexp.match(channelname):
+                        self.message(
+                            ":%s 403 %s %s :No such channel" % (
+                                server.name,
+                                self.nickname,
+                                channelname))
+                    elif not irc_lower(channelname) in self.__channels:
+                        self.message(
+                            ":%s 442 %s %s :You're not on that channel" % (
+                                server.name,
+                                self.nickname,
+                                channelname))
+                    else:
+                        channel = self.__channels[irc_lower(channelname)]
+                        self.messageChannel(
+                            channel,
+                            ":%s PART %s :%s" % (
+                                self.prefix,
+                                channelname,
+                                partmsg),
+                            True)
+                        del self.__channels[irc_lower(channelname)]
+                        server.removeMemberFromChannel(self, channelname)
+        elif command == "PING":
+            if len(arguments) < 1:
+                self.message(
+                    ":%s 409 %s :No origin specified" % (
+                        server.name,
+                        self.nickname))
+            else:
+                self.message(
+                    ":%s PONG %s :%s" % (
+                        server.name,
+                        server.name,
+                        arguments[0]))
+        elif command == "PONG":
+            pass
+        elif command == "QUIT":
+            self.disconnect("Client quit")
+        elif command == "TOPIC":
+            if len(arguments) < 1:
+                self.message(
+                    ":%s 461 %s TOPIC :Not enough parameters" % (
+                        server.name,
+                        self.nickname))
+            else:
+                channelname = arguments[0]
+                if channelname in self.__channels:
+                    channel = server.getChannel(channelname)
+                    if len(arguments) > 1:
+                        newtopic = arguments[1]
+                        channel.topic = newtopic
+                        self.messageChannel(
+                            channel,
+                            ":%s TOPIC %s :%s" % (
+                                self.prefix,
+                                channelname,
+                                newtopic),
+                            True)
+                    else:
+                        if channel.topic:
+                            self.message(
+                                ":%s 332 %s %s :%s" % (
+                                    server.name,
+                                    self.nickname,
+                                    channel.name,
+                                    channel.topic))
+                        else:
+                            self.message(
+                                ":%s 331 %s %s :No topic is set" % (
+                                    server.name,
+                                    self.nickname,
+                                    channel.name))
+                else:
+                    self.message(
+                        ":%s 442 %s :You're not on that channel" % (
+                            server.name,
+                            channelname))
+        elif command == "WHO":
+            if len(arguments) < 1:
+                pass
+            else:
+                targetname = arguments[0]
+                channel = server.getChannel(targetname)
+                if channel:
+                    for member in channel.members:
+                        self.message(
+                            ":%s 352 %s %s %s %s %s %s H :0 %s" % (
+                                server.name,
+                                self.nickname,
+                                targetname,
+                                member.user,
+                                member.host,
+                                server.name,
+                                member.nickname,
+                                member.realname))
+                    self.message(
+                        ":%s 315 %s %s :End of WHO list" % (
+                            server.name,
+                            self.nickname,
+                            targetname))
+        else:
+            self.message(":%s 421 %s %s :Unknown command" % (
+                server.name,
+                self.nickname,
+                command))
+
+    def socketReadableNotification(self):
+        try:
+            data = self.socket.recv(2**10)
+            quitmsg = "EOT"
+        except socket.error, x:
+            data = ""
+            quitmsg = x
+        if len(data) == 0:
+            self.disconnect(quitmsg)
+        else:
+            self.__readbuffer += data
+            self.__parseReadBuffer()
+
+    def socketWritableNotification(self):
+        try:
+            sent = self.socket.send(self.__writebuffer)
+            self.__writebuffer = self.__writebuffer[sent:]
+        except socket.error, x:
+            self.disconnect(x)
+
+    def disconnect(self, quitmsg):
+        self.message("ERROR :%s" % quitmsg)
+        addr = self.socket.getpeername()
+        self.__server.printInfo("Disconnected connection from %s:%s." % (
+            addr[0], addr[1]))
+        self.socket.close()
+        self.__server.removeClient(self, quitmsg)
+
+    def message(self, msg):
+        self.__writebuffer += msg + "\r\n"
+
+    def messageChannel(self, channel, line, includeSelf=False):
+        targets = sets.Set(channel.members)
+        if not includeSelf:
+            targets.discard(self)
+        for client in targets:
+            client.message(line)
+
+    def messageRelated(self, msg, includeSelf=False):
+        clients = sets.Set()
+        if includeSelf:
+            clients.add(self)
+        for channel in self.channels.values():
+            clients |= channel.members
+        if not includeSelf:
+            clients.discard(self)
+        for client in clients:
+            client.message(msg)
+
+class Server(object):
+    def __init__(self, ports, password, verbose):
+        self.__ports = ports
+        self.__password = password
+        self.__verbose = verbose
+        self.__channels = {} # irc_lower(Channel name) --> Channel instance.
+        self.__clients = {}  # Socket --> Client instance.
+        self.__nicknames = {} # irc_lower(Nickname) --> Client instance.
+        self.__name = socket.getfqdn()[:63] # Server name limit from the RFC.
+
+    def debug(self):
+        print "channels:"
+        print self.__channels
+        print
+        print "clients:"
+        print self.__clients
+        print
+        print "nicknames:"
+        print self.__nicknames
+
+    def getName(self):
+        return self.__name
+    name = property(getName)
+
+    def getPassword(self):
+        return self.__password
+    password = property(getPassword)
+
+    def getChannels(self):
+        return self.__channels.values()
+    channels = property(getChannels)
+
+    def getClient(self, nickname):
+        return self.__nicknames.get(irc_lower(nickname))
+
+    def getChannel(self, channelname):
+        return self.__channels.get(irc_lower(channelname))
+
+    def printInfo(self, msg):
+        if self.__verbose:
+            print msg
+
+    def printError(self, msg):
+        print >>sys.stderr, msg
+
+    def clientChangedNickname(self, client, oldnickname):
+        if oldnickname:
+            del self.__nicknames[irc_lower(oldnickname)]
+        self.__nicknames[irc_lower(client.nickname)] = client
+
+    def addMemberToChannel(self, client, channelname):
+        if self.__channels.has_key(irc_lower(channelname)):
+            channel = self.__channels[irc_lower(channelname)]
+        else:
+            channel = Channel(self, channelname)
+            self.__channels[irc_lower(channelname)] = channel
+        channel.addMember(client)
+
+    def removeMemberFromChannel(self, client, channelname):
+        if self.__channels.has_key(irc_lower(channelname)):
+            channel = self.__channels[irc_lower(channelname)]
+            channel.removeClient(client)
+
+    def removeClient(self, client, quitmsg):
+        client.messageRelated(":%s QUIT :%s" % (client.prefix, quitmsg))
+        for chan in client.channels.values():
+            chan.removeClient(client)
+        if client.nickname \
+               and self.__nicknames.has_key(irc_lower(client.nickname)):
+            del self.__nicknames[irc_lower(client.nickname)]
+        del self.__clients[client.socket]
+
+    def removeChannel(self, channel):
+        del self.__channels[irc_lower(channel.name)]
+
+    def start(self):
+        serversockets = []
+        for port in self.__ports:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind(("", port))
+            except socket.error, x:
+                self.printError("Could not bind port %s: %s." % (port, x))
+                sys.exit(1)
+            s.listen(5)
+            serversockets.append(s)
+            del s
+            self.printInfo("Listening on port %d." % port)
+        while True:
+            iwtd, owtd, ewtd = select.select(
+                serversockets + [x.socket for x in self.__clients.values()],
+                [x.socket for x in self.__clients.values()
+                          if x.writeQueueSize() > 0],
+                [])
+            for x in iwtd:
+                if x in self.__clients:
+                    self.__clients[x].socketReadableNotification()
+                else:
+                    conn, addr = x.accept()
+                    self.__clients[conn] = Client(self, conn)
+                    self.printInfo("Accepted connection from %s:%s." % (
+                        addr[0], addr[1]))
+            for x in owtd:
+                self.__clients[x].socketWritableNotification()
+
+_alpha = "abcdefghijklmnopqrstuvwxyz"
+_special = "-[]\\`^{}"
+nick_characters = _alpha + _alpha.upper() + string.digits + _special
+_ircstring_translation = string.maketrans(
+    string.upper(_alpha) + "[]\\^",
+    _alpha + "{}|~")
+
+def irc_lower(s):
+    return string.translate(s, _ircstring_translation)
+
+######################################################################
+
+def displayUsage():
+    print "Usage: miniircd [arguments]"
+    print
+    print "miniircd is a small and limited IRC server."
+    print
+    print "Arguments:"
+    print
+    print "    -h, --help           Show this help text."
+    print "    -p, --password X     Require connection password X."
+    print "        --ports X        Listen to ports X."
+    print "    -v, --verbose        Be verbose."
+
+def main(argv):
+    try:
+        optlist, arguments = getopt.getopt(
+            argv[1:],
+            "hp:v",
+            ["help",
+             "password=",
+             "ports=",
+             "verbose"])
+    except getopt.error, x:
+        sys.stderr.write("Bad arguments: %s.\n" % x)
+        sys.exit(17)
+    password = None
+    ports = [6667]
+    verbose = False
+    for opt, val in optlist:
+        if opt in ("-h", "--help"):
+            displayUsage()
+            sys.exit(0)
+        if opt in ("-p", "--password"):
+            password = val.lower()
+        if opt == "--ports":
+            ports = [int(x) for x in re.split("[,\s]+", val)]
+        if opt in ("-v", "--verbose"):
+            verbose = True
+    server = Server(ports, password, verbose)
+    try:
+        server.start()
+    except KeyboardInterrupt:
+        server.printError("Interrupted.")
+
+main(sys.argv)

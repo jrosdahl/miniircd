@@ -114,10 +114,13 @@ class Client(object):
             if len(x) == 1:
                 arguments = []
             else:
-                y = string.split(x[1], " :", 1)
-                arguments = string.split(y[0])
-                if len(y) == 2:
-                    arguments.append(y[1])
+                if len(x[1]) > 0 and x[1][0] == ":":
+                    arguments = [x[1][1:]]
+                else:
+                    y = string.split(x[1], " :", 1)
+                    arguments = string.split(y[0])
+                    if len(y) == 2:
+                        arguments.append(y[1])
             if command == "DEBUG":
                 self.__server.debug()
             self.__handleCommand(command, arguments)
@@ -421,7 +424,11 @@ class Client(object):
         elif command == "PONG":
             pass
         elif command == "QUIT":
-            self.disconnect("Client quit")
+            if len(arguments) < 1:
+                quitmsg = self.nickname
+            else:
+                quitmsg = arguments[0]
+            self.disconnect(quitmsg)
         elif command == "TOPIC":
             if len(arguments) < 1:
                 self.message(

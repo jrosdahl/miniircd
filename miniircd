@@ -236,6 +236,7 @@ class Client(object):
                     self.nickname,
                     server.name,
                     version))
+            self.sendMotd()
             self.__handleCommand = self.__commandHandler
 
     def __commandHandler(self, command, arguments):
@@ -357,6 +358,9 @@ class Client(object):
                             server.name,
                             self.nickname,
                             targetname))
+
+        def motdHandler():
+            self.sendMotd()
 
         def nickHandler():
             if len(arguments) < 1:
@@ -557,10 +561,51 @@ class Client(object):
                         self.nickname,
                         targetname))
 
+        def whoisHandler():
+            if len(arguments) < 1:
+                return
+
+            username = arguments[0]
+            user = server.getClient(username)
+            if user:
+                self.message(
+                     ":%s 311 %s %s %s %s * :%s" % (
+                        server.name,
+                        self.nickname,
+                        user.nickname,
+                        user.user,
+                        user.host,
+                        user.realname))
+                self.message(
+                    ":%s 312 %s %s %s :%s" % (
+                        server.name,
+                        self.nickname,
+                        user.nickname,
+                        server.name,
+                        server.name))
+                self.message(
+                    ":%s 319 %s %s :%s" % (
+                    server.name,
+                    self.nickname,
+                    user.nickname,
+                    " ".join(user.channels)))
+                self.message(
+                    ":%s 318 %s %s :End of WHOIS list" % (
+                        server.name,
+                        self.nickname,
+                        user.nickname))
+            else:
+                self.message(
+                    ":%s 401 %s %s :No such nick" % (
+                        server.name,
+                        self.nickname,
+                        username))
+
         handlerTable = {
             "JOIN": joinHandler,
             "LIST": listHandler,
             "MODE": modeHandler,
+            "MOTD": motdHandler,
             "NICK": nickHandler,
             "NOTICE": noticeAndPrivmsgHandler,
             "PART": partHandler,
@@ -570,6 +615,7 @@ class Client(object):
             "QUIT": quitHandler,
             "TOPIC": topicHandler,
             "WHO": whoHandler,
+            "WHOIS": whoisHandler,
         }
         server = self.__server
         valid_channel_re = self.__valid_channelname_regexp
@@ -630,8 +676,28 @@ class Client(object):
         for client in clients:
             client.message(msg)
 
+    def sendMotd(self):
+        server = self.__server
+        motdlines = server.getMotdLines()
+        if motdlines:
+            self.message(
+                ":%s 375 %s :- %s Message of the day -" % (
+                    server.name,
+                    self.nickname,
+                    server.name))
+            for line in motdlines:
+                self.message(
+                    ":%s 372 %s :- %s" % (
+                        server.name,
+                        self.nickname,
+                        line.rstrip()))
+            self.message(
+                ":%s 376 %s :End of /MOTD command" % (
+                server.name,
+                self.nickname))
+
 class Server(object):
-    def __init__(self, ports, password, verbose):
+    def __init__(self, ports, password, motdfile, verbose):
         self.__ports = ports
         self.__password = password
         self.__verbose = verbose
@@ -639,6 +705,7 @@ class Server(object):
         self.__clients = {}  # Socket --> Client instance.
         self.__nicknames = {} # irc_lower(Nickname) --> Client instance.
         self.__name = socket.getfqdn()[:63] # Server name limit from the RFC.
+        self.__motdfile = motdfile
 
     def daemonize(self):
         try:
@@ -679,6 +746,16 @@ class Server(object):
 
     def getChannel(self, channelname):
         return self.__channels.get(irc_lower(channelname))
+
+    def getMotdLines(self):
+        if self.__motdfile:
+            try:
+                f = file(self.__motdfile)
+                return f.readlines()
+            except IOError:
+                return ["Could not read MOTD file %s." % self.__motdfile]
+        else:
+            return []
 
     def printInfo(self, msg):
         if self.__verbose:
@@ -777,6 +854,7 @@ def displayUsage():
     print
     print "    -d, --daemon         Fork and become a daemon."
     print "    -h, --help           Show this help text."
+    print "        --motd X         Display file X as message of the day."
     print "    -p, --password X     Require connection password X. Default: no password."
     print "        --ports X        Listen to ports X (a list separated by comma or"
     print "                         whitespace). Default: 6667."
@@ -789,12 +867,14 @@ def main(argv):
             "dhp:v",
             ["daemon",
              "help",
+             "motd=",
              "password=",
              "ports=",
              "verbose"])
     except getopt.error, x:
         sys.stderr.write("Bad arguments: %s.\n" % x)
         sys.exit(17)
+    motd = None
     password = None
     ports = [6667]
     verbose = False
@@ -805,6 +885,8 @@ def main(argv):
         elif opt in ("-h", "--help"):
             displayUsage()
             sys.exit(0)
+        elif opt == "--motd":
+            motd = val
         elif opt in ("-p", "--password"):
             password = val.lower()
         elif opt == "--ports":
@@ -817,7 +899,7 @@ def main(argv):
                     sys.exit(1)
         elif opt in ("-v", "--verbose"):
             verbose = True
-    server = Server(ports, password, verbose)
+    server = Server(ports, password, motd, verbose)
     if daemon:
         server.daemonize()
     try:

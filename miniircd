@@ -1,6 +1,24 @@
 #! /usr/bin/env python
 #
 # tag: miniircd main program
+# Copyright (C) 2003  Joel Rosdahl
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#                                                                                                          
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#                                                                                                          
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+# Joel Rosdahl <joel@rosdahl.net>
 
 version = "0.0.0"
 
@@ -671,9 +689,11 @@ def displayUsage():
     print "Arguments:"
     print
     print "    -h, --help           Show this help text."
-    print "    -p, --password X     Require connection password X."
-    print "        --ports X        Listen to ports X."
-    print "    -v, --verbose        Be verbose."
+    print "    -p, --password X     Require connection password X. Default: no password."
+    print "        --ports X        Listen to ports X (a list separated by comma or"
+    print "                         whitespace). Default: 6667."
+    print "    -v, --verbose        Be verbose (print connections and deconnections on"
+    print "                         stdout)."
 
 def main(argv):
     try:

@@ -1,0 +1,39 @@
+miniircd -- A (very) simple Internet Relay Chat (IRC) server
+------------------------------------------------------------
+
+Description:
+
+    miniircd is a small and limited IRC server. Yet, it's a functional
+    alternative to a full-blown ircd if you want to run a small IRC
+    server for private or internal usage.
+
+    Features:
+
+      * Knows about the basic IRC protocol and commands.
+      * Easy installation.
+      * No configuration.
+      * No ident lookup (so that people behind firewalls that filter
+        the ident port without sending NACK can connect without long
+        timeouts).
+
+    Limitations:
+
+      * Can't connect to other IRC servers.
+      * Only knows the most basic IRC commands.
+      * No IRC operators.
+      * No channel IRC operators.
+      * No other mechanism to reject clients than requiring a server
+        password.
+
+Requirements:
+
+  * Python 2.3 or newer.
+
+Installation:
+
+  * None. Just run "./miniircd --help" (or "python miniircd --help")
+    to get some help.
+
+License:
+
+    See COPYING.

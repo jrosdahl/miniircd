@@ -1,5 +1,3 @@
-* Open /dev/null with "w".
-
 * Handle bad port specification.
 
 * Wrap long lines.

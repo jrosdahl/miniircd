@@ -19,7 +19,7 @@
 #
 # Joel Rosdahl <joel@rosdahl.net>
 
-version = "0.0.0"
+version = "0.1.0"
 
 import getopt
 import os
@@ -376,6 +376,7 @@ class Client(object):
                             self.nickname),
 
                         True)
+
         def noticeAndPrivmsgHandler():
             if len(arguments) == 0:
                 self.message(":%s 411 %s :No recipient given" % (
@@ -557,7 +558,6 @@ class Client(object):
                 self.nickname,
                 command))
 
-
     def socketReadableNotification(self):
         try:
             data = self.socket.recv(2**10)
@@ -645,7 +645,7 @@ class Server(object):
             sys.exit(1)
         os.chdir("/")
         os.umask(0)
-        devNull = file("/dev/null")
+        devNull = file("/dev/null", "r+")
         os.dup2(devNull.fileno(), sys.stdout.fileno())
         os.dup2(devNull.fileno(), sys.stderr.fileno())
         os.dup2(devNull.fileno(), sys.stdin.fileno())

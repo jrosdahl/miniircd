@@ -1,7 +1,3 @@
-* URL to Python.
-
-* Add author information to README.
-
 * Use optparse.
 
 * Remove/disable debug code.

@@ -28,7 +28,7 @@ Description:
 
 Requirements:
 
-  * Python 2.3 or newer.
+  * Python 2.3 or newer. Get it at http://www.python.org.
 
 Installation:
 
@@ -38,3 +38,7 @@ Installation:
 License:
 
     See COPYING.
+
+Authors:
+
+    Joel Rosdahl <joel@rosdahl.net>

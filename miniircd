@@ -129,8 +129,13 @@ class Client(object):
             self.disconnect("ping timeout")
             return
         if not self.__sentPing and self.timestamp + 90 < now:
-            self.message("PING :%s" % self.__server.name)
-            self.__sentPing = True
+            if self.__handleCommand == self.__commandHandler:
+                # Registered.
+                self.message("PING :%s" % self.__server.name)
+                self.__sentPing = True
+            else:
+                # Not registered.
+                self.disconnect("ping timeout")
 
     def writeQueueSize(self):
         return len(self.__writebuffer)

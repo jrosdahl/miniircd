@@ -1,0 +1,15 @@
+* Open /dev/null with "w".
+
+* Handle bad port specification.
+
+* Wrap long lines.
+
+* URL to Python.
+
+* Add author information to README.
+
+* Use optparse.
+
+* Remove/disable debug code.
+
+* Don't use a set in client.messageChannel.

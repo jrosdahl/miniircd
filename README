@@ -21,9 +21,8 @@ Description:
       * Can't connect to other IRC servers.
       * Only knows the most basic IRC commands.
       * No IRC operators.
-      * No channel IRC operators.
-      * No other mechanism to reject clients than requiring a server
-        password.
+      * No channel operators.
+      * No other mechanism to reject clients than requiring a password.
 
 Requirements:
 

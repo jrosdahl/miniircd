@@ -719,8 +719,7 @@ def displayUsage():
     print "    -p, --password X     Require connection password X. Default: no password."
     print "        --ports X        Listen to ports X (a list separated by comma or"
     print "                         whitespace). Default: 6667."
-    print "    -v, --verbose        Be verbose (print connections and deconnections on"
-    print "                         stdout)."
+    print "    -v, --verbose        Be verbose (print some progress messages on stdout)."
 
 def main(argv):
     try:

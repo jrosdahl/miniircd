@@ -606,11 +606,9 @@ class Client(object):
         self.__writebuffer += msg + "\r\n"
 
     def messageChannel(self, channel, line, includeSelf=False):
-        targets = sets.Set(channel.members)
-        if not includeSelf:
-            targets.discard(self)
-        for client in targets:
-            client.message(line)
+        for client in channel.members:
+            if client != self or includeSelf:
+                client.message(line)
 
     def messageRelated(self, msg, includeSelf=False):
         clients = sets.Set()

@@ -19,7 +19,7 @@
 #
 # Joel Rosdahl <joel@rosdahl.net>
 
-version = "0.1.0"
+version = "0.1.1"
 
 import getopt
 import os
@@ -127,6 +127,7 @@ class Client(object):
         now = time.time()
         if self.timestamp + 180 < now:
             self.disconnect("ping timeout")
+            return
         if not self.__sentPing and self.timestamp + 90 < now:
             self.message("PING :%s" % self.__server.name)
             self.__sentPing = True
@@ -170,6 +171,7 @@ class Client(object):
                         ":%s 464 :Password incorrect" % server.name)
         elif command == "QUIT":
             self.disconnect("Client quit")
+            return
         else:
             pass
 
@@ -205,6 +207,7 @@ class Client(object):
             self.__realname = arguments[3]
         elif command == "QUIT":
             self.disconnect("Client quit")
+            return
         else:
             pass
         if self.nickname and self.user:

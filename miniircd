@@ -22,6 +22,7 @@
 version = "0.0.0"
 
 import getopt
+import os
 import select
 import sets
 import socket
@@ -627,6 +628,28 @@ class Server(object):
         print "nicknames:"
         print self.__nicknames
 
+    def daemonize(self):
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError:
+            sys.exit(1)
+        os.setsid()
+        try:
+            pid = os.fork()
+            if pid > 0:
+                self.printInfo("PID: %d" % pid)
+                sys.exit(0)
+        except OSError:
+            sys.exit(1)
+        os.chdir("/")
+        os.umask(0)
+        devNull = file("/dev/null")
+        os.dup2(devNull.fileno(), sys.stdout.fileno())
+        os.dup2(devNull.fileno(), sys.stderr.fileno())
+        os.dup2(devNull.fileno(), sys.stdin.fileno())
+
     def getName(self):
         return self.__name
     name = property(getName)
@@ -740,6 +763,7 @@ def displayUsage():
     print
     print "Arguments:"
     print
+    print "    -d, --daemon         Fork and become a daemon."
     print "    -h, --help           Show this help text."
     print "    -p, --password X     Require connection password X. Default: no password."
     print "        --ports X        Listen to ports X (a list separated by comma or"
@@ -750,8 +774,9 @@ def main(argv):
     try:
         optlist, arguments = getopt.getopt(
             argv[1:],
-            "hp:v",
-            ["help",
+            "dhp:v",
+            ["daemon",
+             "help",
              "password=",
              "ports=",
              "verbose"])
@@ -761,17 +786,22 @@ def main(argv):
     password = None
     ports = [6667]
     verbose = False
+    daemon = False
     for opt, val in optlist:
-        if opt in ("-h", "--help"):
+        if opt in ("-d", "--daemon"):
+            daemon = True
+        elif opt in ("-h", "--help"):
             displayUsage()
             sys.exit(0)
-        if opt in ("-p", "--password"):
+        elif opt in ("-p", "--password"):
             password = val.lower()
-        if opt == "--ports":
+        elif opt == "--ports":
             ports = [int(x) for x in re.split("[,\s]+", val)]
-        if opt in ("-v", "--verbose"):
+        elif opt in ("-v", "--verbose"):
             verbose = True
     server = Server(ports, password, verbose)
+    if daemon:
+        server.daemonize()
     try:
         server.start()
     except KeyboardInterrupt:

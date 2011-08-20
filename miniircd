@@ -31,6 +31,7 @@ import re
 import time
 from optparse import OptionParser
 
+
 class Channel(object):
     def __init__(self, server, name):
         self.server = server
@@ -49,6 +50,7 @@ class Channel(object):
         if len(self.members) == 0:
             self.server.remove_channel(self)
 
+
 class Client(object):
     __linesep_regexp = re.compile(r"\r?\n")
     # The RFC limit for nicknames is 9 characters, but what the heck.
@@ -60,11 +62,11 @@ class Client(object):
     def __init__(self, server, socket):
         self.server = server
         self.socket = socket
-        self.channels = {} # irc_lower(Channel name) --> Channel
+        self.channels = {}  # irc_lower(Channel name) --> Channel
         self.nickname = None
         self.user = None
         self.realname = None
-        self.host, self.port = socket.getpeername()
+        (self.host, self.port) = socket.getpeername()
         self.__timestamp = time.time()
         self.__readbuffer = ""
         self.__writebuffer = ""
@@ -592,7 +594,7 @@ class Client(object):
 
     def socket_readable_notification(self):
         try:
-            data = self.socket.recv(2**10)
+            data = self.socket.recv(2 ** 10)
             self.server.print_debug(
                 "[%s:%d] -> %r" % (self.host, self.port, data))
             quitmsg = "EOT"
@@ -664,6 +666,7 @@ class Client(object):
                 server.name,
                 self.nickname))
 
+
 class Server(object):
     def __init__(self, ports, password, motdfile, verbose, debug):
         self.ports = ports
@@ -671,10 +674,10 @@ class Server(object):
         self.motdfile = motdfile
         self.verbose = verbose
         self.debug = debug
-        self.name = socket.getfqdn()[:63] # Server name limit from the RFC.
-        self.channels = {} # irc_lower(Channel name) --> Channel instance.
+        self.name = socket.getfqdn()[:63]  # Server name limit from the RFC.
+        self.channels = {}  # irc_lower(Channel name) --> Channel instance.
         self.clients = {}  # Socket --> Client instance.
-        self.nicknames = {} # irc_lower(Nickname) --> Client instance.
+        self.nicknames = {}  # irc_lower(Nickname) --> Client instance.
 
     def daemonize(self):
         try:
@@ -723,7 +726,7 @@ class Server(object):
             print msg
 
     def print_error(self, msg):
-        print >>sys.stderr, msg
+        sys.stderr.write("%s\n" % msg)
 
     def client_changed_nickname(self, client, oldnickname):
         if oldnickname:
@@ -731,7 +734,7 @@ class Server(object):
         self.nicknames[irc_lower(client.nickname)] = client
 
     def add_member_to_channel(self, client, channelname):
-        if self.channels.has_key(irc_lower(channelname)):
+        if irc_lower(channelname) in self.channels:
             channel = self.channels[irc_lower(channelname)]
         else:
             channel = Channel(self, channelname)
@@ -739,7 +742,7 @@ class Server(object):
         channel.add_member(client)
 
     def remove_member_from_channel(self, client, channelname):
-        if self.channels.has_key(irc_lower(channelname)):
+        if irc_lower(channelname) in self.channels:
             channel = self.channels[irc_lower(channelname)]
             channel.remove_client(client)
 
@@ -748,7 +751,7 @@ class Server(object):
         for chan in client.channels.values():
             chan.remove_client(client)
         if client.nickname \
-               and self.nicknames.has_key(irc_lower(client.nickname)):
+               and irc_lower(client.nickname) in self.nicknames:
             del self.nicknames[irc_lower(client.nickname)]
         del self.clients[client.socket]
 
@@ -772,7 +775,7 @@ class Server(object):
 
         last_aliveness_check = time.time()
         while True:
-            iwtd, owtd, ewtd = select.select(
+            (iwtd, owtd, ewtd) = select.select(
                 serversockets + [x.socket for x in self.clients.values()],
                 [x.socket for x in self.clients.values()
                           if x.write_queue_size() > 0],
@@ -782,7 +785,7 @@ class Server(object):
                 if x in self.clients:
                     self.clients[x].socket_readable_notification()
                 else:
-                    conn, addr = x.accept()
+                    (conn, addr) = x.accept()
                     self.clients[conn] = Client(self, conn)
                     self.print_info("Accepted connection from %s:%s." % (
                         addr[0], addr[1]))
@@ -794,6 +797,7 @@ class Server(object):
                     client.check_aliveness()
                 last_aliveness_check = now
 
+
 _alpha = "abcdefghijklmnopqrstuvwxyz"
 _special = "-[]\\`^{}"
 nick_characters = _alpha + _alpha.upper() + string.digits + _special
@@ -801,10 +805,13 @@ _ircstring_translation = string.maketrans(
     string.upper(_alpha) + "[]\\^",
     _alpha + "{}|~")
 
+
 def irc_lower(s):
     return string.translate(s, _ircstring_translation)
 
+
 ######################################################################
+
 
 def display_usage():
     print "Usage: miniircd [arguments]"
@@ -821,6 +828,7 @@ def display_usage():
     print "        --ports X        Listen to ports X (a list separated by comma or"
     print "                         whitespace). Default: 6667."
     print "    -v, --verbose        Be verbose (print some progress messages on stdout)."
+
 
 def main(argv):
     op = OptionParser(
@@ -869,5 +877,6 @@ def main(argv):
         server.start()
     except KeyboardInterrupt:
         server.print_error("Interrupted.")
+
 
 main(sys.argv)

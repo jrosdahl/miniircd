@@ -22,7 +22,6 @@
 
 version = "0.2.0"
 
-import getopt
 import os
 import select
 import socket
@@ -30,6 +29,7 @@ import string
 import sys
 import re
 import time
+from optparse import OptionParser
 
 class Channel(object):
     def __init__(self, server, name):
@@ -823,51 +823,47 @@ def display_usage():
     print "    -v, --verbose        Be verbose (print some progress messages on stdout)."
 
 def main(argv):
-    try:
-        optlist, arguments = getopt.getopt(
-            argv[1:],
-            "dhp:v",
-            ["daemon",
-             "debug",
-             "help",
-             "motd=",
-             "password=",
-             "ports=",
-             "verbose"])
-    except getopt.error, x:
-        sys.stderr.write("Bad arguments: %s.\n" % x)
-        sys.exit(17)
-    motd = None
-    password = None
-    ports = [6667]
-    verbose = False
-    daemon = False
-    debug = False
-    for opt, val in optlist:
-        if opt in ("-d", "--daemon"):
-            daemon = True
-        elif opt == "--debug":
-            debug = True
-            verbose = True
-        elif opt in ("-h", "--help"):
-            display_usage()
-            sys.exit(0)
-        elif opt == "--motd":
-            motd = val
-        elif opt in ("-p", "--password"):
-            password = val.lower()
-        elif opt == "--ports":
-            ports = []
-            for port in re.split("[,\s]+", val):
-                try:
-                    ports.append(int(port))
-                except ValueError:
-                    sys.stderr.write("Bad port: \"%s\".\n" % port)
-                    sys.exit(1)
-        elif opt in ("-v", "--verbose"):
-            verbose = True
-    server = Server(ports, password, motd, verbose, debug)
-    if daemon:
+    op = OptionParser(
+        version=version,
+        description="miniircd is a small and limited IRC server.")
+    op.add_option(
+        "-d", "--daemon",
+        action="store_true",
+        help="fork and become a daemon")
+    op.add_option(
+        "--debug",
+        action="store_true",
+        help="print debug messages to stdout")
+    op.add_option(
+        "--motd",
+        metavar="X",
+        help="display file X as message of the day")
+    op.add_option(
+        "-p", "--password",
+        metavar="X",
+        help="require connection password X; default: no password")
+    op.add_option(
+        "--ports",
+        metavar="X",
+        help="listen to ports X (a list separated by comma or whitespace);"
+             " default: 6667.")
+    op.add_option(
+        "--verbose",
+        action="store_true",
+        help="be verbose (print some progress messages to stdout)")
+    op.set_defaults(ports="6667")
+    (options, args) = op.parse_args(argv[1:])
+    if options.debug:
+        options.verbose = True
+    ports = []
+    for port in re.split(r"[,\s]+", options.ports):
+        try:
+            ports.append(int(port))
+        except ValueError:
+            op.error("bad port: %r" % port)
+    server = Server(
+        ports, options.password, options.motd, options.verbose, options.debug)
+    if options.daemon:
         server.daemonize()
     try:
         server.start()

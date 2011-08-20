@@ -50,12 +50,12 @@ class Channel(object):
             self.server.remove_channel(self)
 
 class Client(object):
-    __linesep_regexp = re.compile("\r?\n")
+    __linesep_regexp = re.compile(r"\r?\n")
     # The RFC limit for nicknames is 9 characters, but what the heck.
     __valid_nickname_regexp = re.compile(
-        "^[][\`_^{|}A-Za-z][][\`_^{|}A-Za-z0-9]{0,50}$")
+        r"^[][\`_^{|}A-Za-z][][\`_^{|}A-Za-z0-9]{0,50}$")
     __valid_channelname_regexp = re.compile(
-        "^[&#+!][^\x00\x07\x0a\x0d ,:]{0,50}$")
+        r"^[&#+!][^\x00\x07\x0a\x0d ,:]{0,50}$")
 
     def __init__(self, server, socket):
         self.server = server

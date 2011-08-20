@@ -47,7 +47,7 @@ class Channel(object):
     def remove_client(self, client):
         for x in [self.members, self.__operators, self.__voiced]:
             x.discard(client)
-        if len(self.members) == 0:
+        if not self.members:
             self.server.remove_channel(self)
 
 
@@ -164,7 +164,6 @@ class Client(object):
                 self.message(
                     ":%s 461 * USER :Not enough parameters" % server.name)
                 return
-
             self.user = arguments[0]
             self.realname = arguments[3]
         elif command == "QUIT":
@@ -211,7 +210,6 @@ class Client(object):
                         server.name,
                         self.nickname))
                 return
-
             if arguments[0] == "0":
                 for channelname, channel in self.channels.items():
                     self.message_channel(
@@ -291,7 +289,6 @@ class Client(object):
                         server.name,
                         self.nickname))
                 return
-
             targetname = arguments[0]
             channel = server.get_channel(targetname)
             if channel:
@@ -331,7 +328,6 @@ class Client(object):
                 self.message(
                     ":%s 431 :No nickname given" % server.name)
                 return
-
             newnick = arguments[0]
             client = server.get_client(newnick)
             if newnick == self.nickname:
@@ -358,7 +354,6 @@ class Client(object):
                         self.user,
                         self.host,
                         self.nickname),
-
                     True)
 
         def notice_and_privmsg_handler():
@@ -372,7 +367,6 @@ class Client(object):
                     server.name,
                     self.nickname))
                 return
-
             targetname = arguments[0]
             message = arguments[1]
             client = server.get_client(targetname)
@@ -406,7 +400,6 @@ class Client(object):
                         server.name,
                         self.nickname))
                 return
-
             if len(arguments) > 1:
                 partmsg = arguments[1]
             else:
@@ -443,7 +436,6 @@ class Client(object):
                         server.name,
                         self.nickname))
                 return
-
             self.message(
                 ":%s PONG %s :%s" % (
                     server.name,
@@ -467,7 +459,6 @@ class Client(object):
                         server.name,
                         self.nickname))
                 return
-
             channelname = arguments[0]
             if channelname in self.channels:
                 channel = server.get_channel(channelname)
@@ -504,7 +495,6 @@ class Client(object):
         def who_handler():
             if len(arguments) < 1:
                 return
-
             targetname = arguments[0]
             channel = server.get_channel(targetname)
             if channel:
@@ -528,7 +518,6 @@ class Client(object):
         def whois_handler():
             if len(arguments) < 1:
                 return
-
             username = arguments[0]
             user = server.get_client(username)
             if user:
@@ -601,13 +590,13 @@ class Client(object):
         except socket.error, x:
             data = ""
             quitmsg = x
-        if len(data) == 0:
-            self.disconnect(quitmsg)
-        else:
+        if data:
             self.__readbuffer += data
             self.__parse_read_buffer()
             self.__timestamp = time.time()
             self.__sent_ping = False
+        else:
+            self.disconnect(quitmsg)
 
     def socket_writable_notification(self):
         try:
@@ -696,7 +685,7 @@ class Server(object):
             sys.exit(1)
         os.chdir("/")
         os.umask(0)
-        dev_null = file("/dev/null", "r+")
+        dev_null = open("/dev/null", "r+")
         os.dup2(dev_null.fileno(), sys.stdout.fileno())
         os.dup2(dev_null.fileno(), sys.stderr.fileno())
         os.dup2(dev_null.fileno(), sys.stdin.fileno())
@@ -710,10 +699,9 @@ class Server(object):
     def get_motd_lines(self):
         if self.motdfile:
             try:
-                f = file(self.motdfile)
-                return f.readlines()
+                return open(self.motdfile).readlines()
             except IOError:
-                return ["Could not read MOTD file %s." % self.motdfile]
+                return ["Could not read MOTD file %r." % self.motdfile]
         else:
             return []
 
@@ -772,7 +760,6 @@ class Server(object):
             serversockets.append(s)
             del s
             self.print_info("Listening on port %d." % port)
-
         last_aliveness_check = time.time()
         while True:
             (iwtd, owtd, ewtd) = select.select(

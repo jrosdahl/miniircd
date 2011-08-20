@@ -245,6 +245,9 @@ class Client(object):
             self.__handleCommand = self.__commandHandler
 
     def __commandHandler(self, command, arguments):
+        def awayHandler():
+            pass
+
         def joinHandler():
             if len(arguments) < 1:
                 self.message(
@@ -607,6 +610,7 @@ class Client(object):
                         username))
 
         handlerTable = {
+            "AWAY": awayHandler,
             "JOIN": joinHandler,
             "LIST": listHandler,
             "MODE": modeHandler,

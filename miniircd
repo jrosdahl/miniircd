@@ -236,6 +236,11 @@ class Client(object):
                     self.nickname,
                     server.name,
                     version))
+            self.message(
+                ":%s 251 %s :There are %d users and 0 services on 1 servers" % (
+                    server.name,
+                    self.nickname,
+                    server.getNumberOfUsers()))
             self.sendMotd()
             self.__handleCommand = self.__commandHandler
 
@@ -762,6 +767,9 @@ class Server(object):
                 return ["Could not read MOTD file %s." % self.__motdfile]
         else:
             return []
+
+    def getNumberOfUsers(self):
+        return len(self.__clients)
 
     def printInfo(self, msg):
         if self.__verbose:

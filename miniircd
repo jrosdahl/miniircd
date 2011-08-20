@@ -25,7 +25,6 @@ version = "0.2.0"
 import getopt
 import os
 import select
-import sets
 import socket
 import string
 import sys
@@ -36,9 +35,9 @@ class Channel(object):
     def __init__(self, server, name):
         self.__server = server
         self.__name = name
-        self.__members = sets.Set()
-        self.__operators = sets.Set()
-        self.__voiced = sets.Set()
+        self.__members = set()
+        self.__operators = set()
+        self.__voiced = set()
         self.__topic = ""
 
     def getName(self):
@@ -680,7 +679,7 @@ class Client(object):
                 client.message(line)
 
     def messageRelated(self, msg, includeSelf=False):
-        clients = sets.Set()
+        clients = set()
         if includeSelf:
             clients.add(self)
         for channel in self.channels.values():

@@ -516,12 +516,12 @@ class Client(object):
 
 
 class Server(object):
-    def __init__(self, ports, password, motdfile, verbose, debug):
-        self.ports = ports
-        self.password = password
-        self.motdfile = motdfile
-        self.verbose = verbose
-        self.debug = debug
+    def __init__(self, options):
+        self.ports = options.ports
+        self.password = options.password
+        self.motdfile = options.motd
+        self.verbose = options.verbose
+        self.debug = options.debug
         self.name = socket.getfqdn()[:63]  # Server name limit from the RFC.
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
         self.clients = {}  # Socket --> Client instance.
@@ -693,8 +693,8 @@ def main(argv):
             ports.append(int(port))
         except ValueError:
             op.error("bad port: %r" % port)
-    server = Server(
-        ports, options.password, options.motd, options.verbose, options.debug)
+    options.ports = ports
+    server = Server(options)
     if options.daemon:
         server.daemonize()
     try:

@@ -645,8 +645,6 @@ class Server(object):
 
 
 _alpha = "abcdefghijklmnopqrstuvwxyz"
-_special = "-[]\\`^{}"
-nick_characters = _alpha + _alpha.upper() + string.digits + _special
 _ircstring_translation = string.maketrans(
     string.upper(_alpha) + "[]\\^",
     _alpha + "{}|~")
@@ -654,26 +652,6 @@ _ircstring_translation = string.maketrans(
 
 def irc_lower(s):
     return string.translate(s, _ircstring_translation)
-
-
-######################################################################
-
-
-def display_usage():
-    print "Usage: miniircd [arguments]"
-    print
-    print "miniircd is a small and limited IRC server."
-    print
-    print "Arguments:"
-    print
-    print "    -d, --daemon         Fork and become a daemon."
-    print "        --debug          Print debug messages to stdout."
-    print "    -h, --help           Show this help text."
-    print "        --motd X         Display file X as message of the day."
-    print "    -p, --password X     Require connection password X. Default: no password."
-    print "        --ports X        Listen to ports X (a list separated by comma or"
-    print "                         whitespace). Default: 6667."
-    print "    -v, --verbose        Be verbose (print some progress messages on stdout)."
 
 
 def main(argv):

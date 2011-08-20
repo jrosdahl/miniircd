@@ -40,14 +40,14 @@ class Channel(object):
         self.__operators = set()
         self.__voiced = set()
 
-    def addMember(self, client):
+    def add_member(self, client):
         self.members.add(client)
 
-    def removeClient(self, client):
+    def remove_client(self, client):
         for x in [self.members, self.__operators, self.__voiced]:
             x.discard(client)
         if len(self.members) == 0:
-            self.server.removeChannel(self)
+            self.server.remove_channel(self)
 
 class Client(object):
     __linesep_regexp = re.compile("\r?\n")
@@ -68,34 +68,34 @@ class Client(object):
         self.__timestamp = time.time()
         self.__readbuffer = ""
         self.__writebuffer = ""
-        self.__sentPing = False
+        self.__sent_ping = False
         if self.server.password:
-            self.__handleCommand = self.__passHandler
+            self.__handle_command = self.__pass_handler
         else:
-            self.__handleCommand = self.__registrationHandler
+            self.__handle_command = self.__registration_handler
 
-    def getPrefix(self):
+    def get_prefix(self):
         return "%s!%s@%s" % (self.nickname, self.user, self.host)
-    prefix = property(getPrefix)
+    prefix = property(get_prefix)
 
-    def checkAliveness(self):
+    def check_aliveness(self):
         now = time.time()
         if self.__timestamp + 180 < now:
             self.disconnect("ping timeout")
             return
-        if not self.__sentPing and self.__timestamp + 90 < now:
-            if self.__handleCommand == self.__commandHandler:
+        if not self.__sent_ping and self.__timestamp + 90 < now:
+            if self.__handle_command == self.__command_handler:
                 # Registered.
                 self.message("PING :%s" % self.server.name)
-                self.__sentPing = True
+                self.__sent_ping = True
             else:
                 # Not registered.
                 self.disconnect("ping timeout")
 
-    def writeQueueSize(self):
+    def write_queue_size(self):
         return len(self.__writebuffer)
 
-    def __parseReadBuffer(self):
+    def __parse_read_buffer(self):
         lines = self.__linesep_regexp.split(self.__readbuffer)
         self.__readbuffer = lines[-1]
         lines = lines[:-1]
@@ -115,9 +115,9 @@ class Client(object):
                     arguments = string.split(y[0])
                     if len(y) == 2:
                         arguments.append(y[1])
-            self.__handleCommand(command, arguments)
+            self.__handle_command(command, arguments)
 
-    def __passHandler(self, command, arguments):
+    def __pass_handler(self, command, arguments):
         server = self.server
         if command == "PASS":
             if len(arguments) == 0:
@@ -125,7 +125,7 @@ class Client(object):
                     ":%s 461 * PASS :Not enough parameters" % server.name)
             else:
                 if arguments[0].lower() == server.password:
-                    self.__handleCommand = self.__registrationHandler
+                    self.__handle_command = self.__registration_handler
                 else:
                     self.message(
                         ":%s 464 :Password incorrect" % server.name)
@@ -135,7 +135,7 @@ class Client(object):
         else:
             pass
 
-    def __registrationHandler(self, command, arguments):
+    def __registration_handler(self, command, arguments):
         server = self.server
         if command == "NICK":
             if len(arguments) < 1:
@@ -144,7 +144,7 @@ class Client(object):
                 return
 
             nick = arguments[0]
-            if server.getClient(nick):
+            if server.get_client(nick):
                 self.message(
                     ":%s 433 * %s :Nickname is already in use" % (
                         server.name,
@@ -156,7 +156,7 @@ class Client(object):
                         nick))
             else:
                 self.nickname = nick
-                server.clientChangedNickname(self, None)
+                server.client_changed_nickname(self, None)
         elif command == "USER":
             if len(arguments) < 4:
                 self.message(
@@ -195,14 +195,14 @@ class Client(object):
                     server.name,
                     self.nickname,
                     len(server.clients)))
-            self.sendMotd()
-            self.__handleCommand = self.__commandHandler
+            self.send_motd()
+            self.__handle_command = self.__command_handler
 
-    def __commandHandler(self, command, arguments):
-        def awayHandler():
+    def __command_handler(self, command, arguments):
+        def away_handler():
             pass
 
-        def joinHandler():
+        def join_handler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 461 %s JOIN :Not enough parameters" % (
@@ -212,11 +212,11 @@ class Client(object):
 
             if arguments[0] == "0":
                 for channelname, channel in self.channels.items():
-                    self.messageChannel(
+                    self.message_channel(
                         channel,
                         ":%s PART %s" % (self.prefix, channelname),
                         True)
-                    server.removeMemberFromChannel(self, channelname)
+                    server.remove_member_from_channel(self, channelname)
                 self.channels = {}
             else:
                 for channelname in arguments[0].split(","):
@@ -229,10 +229,10 @@ class Client(object):
                                 self.nickname,
                                 channelname))
                     else:
-                        server.addMemberToChannel(self, channelname)
-                        channel = server.getChannel(channelname)
+                        server.add_member_to_channel(self, channelname)
+                        channel = server.get_channel(channelname)
                         self.channels[irc_lower(channelname)] = channel
-                        self.messageChannel(
+                        self.message_channel(
                             channel,
                             ":%s JOIN %s" % (self.prefix, channelname),
                             True)
@@ -262,13 +262,13 @@ class Client(object):
                                 self.nickname,
                                 channelname))
 
-        def listHandler():
+        def list_handler():
             if len(arguments) < 1:
                 channels = server.channels.values()
             else:
                 channels = []
                 for channelname in arguments[0].split(","):
-                    channel = server.getChannel(channelname)
+                    channel = server.get_channel(channelname)
                     if channel:
                         channels.append(channel)
             for channel in channels:
@@ -282,7 +282,7 @@ class Client(object):
             self.message(
                 ":%s 323 %s :End of LIST" % (server.name, self.nickname))
 
-        def modeHandler():
+        def mode_handler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 461 %s MODE :Not enough parameters" % (
@@ -291,7 +291,7 @@ class Client(object):
                 return
 
             targetname = arguments[0]
-            channel = server.getChannel(targetname)
+            channel = server.get_channel(targetname)
             if channel:
                 if len(arguments) > 1:
                     modes = arguments[1]
@@ -321,17 +321,17 @@ class Client(object):
                             self.nickname,
                             targetname))
 
-        def motdHandler():
-            self.sendMotd()
+        def motd_handler():
+            self.send_motd()
 
-        def nickHandler():
+        def nick_handler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 431 :No nickname given" % server.name)
                 return
 
             newnick = arguments[0]
-            client = server.getClient(newnick)
+            client = server.get_client(newnick)
             if newnick == self.nickname:
                 pass
             elif client and client is not self:
@@ -349,8 +349,8 @@ class Client(object):
             else:
                 oldnickname = self.nickname
                 self.nickname = newnick
-                server.clientChangedNickname(self, oldnickname)
-                self.messageRelated(
+                server.client_changed_nickname(self, oldnickname)
+                self.message_related(
                     ":%s!%s@%s NICK %s" % (
                         oldnickname,
                         self.user,
@@ -359,7 +359,7 @@ class Client(object):
 
                     True)
 
-        def noticeAndPrivmsgHandler():
+        def notice_and_privmsg_handler():
             if len(arguments) == 0:
                 self.message(":%s 411 %s :No recipient given" % (
                     server.name,
@@ -373,7 +373,7 @@ class Client(object):
 
             targetname = arguments[0]
             message = arguments[1]
-            client = server.getClient(targetname)
+            client = server.get_client(targetname)
             if client:
                 client.message(":%s %s %s :%s" % (
                     self.prefix,
@@ -381,9 +381,9 @@ class Client(object):
                     targetname,
                     message))
             else:
-                channel = server.getChannel(targetname)
+                channel = server.get_channel(targetname)
                 if channel:
-                    self.messageChannel(
+                    self.message_channel(
                         channel,
                         ":%s %s %s :%s" % (
                             self.prefix,
@@ -397,7 +397,7 @@ class Client(object):
                             self.nickname,
                             targetname))
 
-        def partHandler():
+        def part_handler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 461 %s PART :Not enough parameters" % (
@@ -424,7 +424,7 @@ class Client(object):
                             channelname))
                 else:
                     channel = self.channels[irc_lower(channelname)]
-                    self.messageChannel(
+                    self.message_channel(
                         channel,
                         ":%s PART %s :%s" % (
                             self.prefix,
@@ -432,9 +432,9 @@ class Client(object):
                             partmsg),
                         True)
                     del self.channels[irc_lower(channelname)]
-                    server.removeMemberFromChannel(self, channelname)
+                    server.remove_member_from_channel(self, channelname)
 
-        def pingHandler():
+        def ping_handler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 409 %s :No origin specified" % (
@@ -448,17 +448,17 @@ class Client(object):
                     server.name,
                     arguments[0]))
 
-        def pongHandler():
+        def pong_handler():
             pass
 
-        def quitHandler():
+        def quit_handler():
             if len(arguments) < 1:
                 quitmsg = self.nickname
             else:
                 quitmsg = arguments[0]
             self.disconnect(quitmsg)
 
-        def topicHandler():
+        def topic_handler():
             if len(arguments) < 1:
                 self.message(
                     ":%s 461 %s TOPIC :Not enough parameters" % (
@@ -468,11 +468,11 @@ class Client(object):
 
             channelname = arguments[0]
             if channelname in self.channels:
-                channel = server.getChannel(channelname)
+                channel = server.get_channel(channelname)
                 if len(arguments) > 1:
                     newtopic = arguments[1]
                     channel.topic = newtopic
-                    self.messageChannel(
+                    self.message_channel(
                         channel,
                         ":%s TOPIC %s :%s" % (
                             self.prefix,
@@ -499,12 +499,12 @@ class Client(object):
                         server.name,
                         channelname))
 
-        def whoHandler():
+        def who_handler():
             if len(arguments) < 1:
                 return
 
             targetname = arguments[0]
-            channel = server.getChannel(targetname)
+            channel = server.get_channel(targetname)
             if channel:
                 for member in channel.members:
                     self.message(
@@ -523,12 +523,12 @@ class Client(object):
                         self.nickname,
                         targetname))
 
-        def whoisHandler():
+        def whois_handler():
             if len(arguments) < 1:
                 return
 
             username = arguments[0]
-            user = server.getClient(username)
+            user = server.get_client(username)
             if user:
                 self.message(
                      ":%s 311 %s %s %s %s * :%s" % (
@@ -563,37 +563,37 @@ class Client(object):
                         self.nickname,
                         username))
 
-        handlerTable = {
-            "AWAY": awayHandler,
-            "JOIN": joinHandler,
-            "LIST": listHandler,
-            "MODE": modeHandler,
-            "MOTD": motdHandler,
-            "NICK": nickHandler,
-            "NOTICE": noticeAndPrivmsgHandler,
-            "PART": partHandler,
-            "PING": pingHandler,
-            "PONG": pongHandler,
-            "PRIVMSG": noticeAndPrivmsgHandler,
-            "QUIT": quitHandler,
-            "TOPIC": topicHandler,
-            "WHO": whoHandler,
-            "WHOIS": whoisHandler,
+        handler_table = {
+            "AWAY": away_handler,
+            "JOIN": join_handler,
+            "LIST": list_handler,
+            "MODE": mode_handler,
+            "MOTD": motd_handler,
+            "NICK": nick_handler,
+            "NOTICE": notice_and_privmsg_handler,
+            "PART": part_handler,
+            "PING": ping_handler,
+            "PONG": pong_handler,
+            "PRIVMSG": notice_and_privmsg_handler,
+            "QUIT": quit_handler,
+            "TOPIC": topic_handler,
+            "WHO": who_handler,
+            "WHOIS": whois_handler,
         }
         server = self.server
         valid_channel_re = self.__valid_channelname_regexp
         try:
-            handlerTable[command]()
+            handler_table[command]()
         except KeyError:
             self.message(":%s 421 %s %s :Unknown command" % (
                 server.name,
                 self.nickname,
                 command))
 
-    def socketReadableNotification(self):
+    def socket_readable_notification(self):
         try:
             data = self.socket.recv(2**10)
-            self.server.printDebug(
+            self.server.print_debug(
                 "[%s:%d] -> %r" % (self.host, self.port, data))
             quitmsg = "EOT"
         except socket.error, x:
@@ -603,14 +603,14 @@ class Client(object):
             self.disconnect(quitmsg)
         else:
             self.__readbuffer += data
-            self.__parseReadBuffer()
+            self.__parse_read_buffer()
             self.__timestamp = time.time()
-            self.__sentPing = False
+            self.__sent_ping = False
 
-    def socketWritableNotification(self):
+    def socket_writable_notification(self):
         try:
             sent = self.socket.send(self.__writebuffer)
-            self.server.printDebug(
+            self.server.print_debug(
                 "[%s:%d] <- %r" % (
                     self.host, self.port, self.__writebuffer[:sent]))
             self.__writebuffer = self.__writebuffer[sent:]
@@ -619,34 +619,34 @@ class Client(object):
 
     def disconnect(self, quitmsg):
         self.message("ERROR :%s" % quitmsg)
-        self.server.printInfo(
+        self.server.print_info(
             "Disconnected connection from %s:%s (%s)." % (
                 self.host, self.port, quitmsg))
         self.socket.close()
-        self.server.removeClient(self, quitmsg)
+        self.server.remove_client(self, quitmsg)
 
     def message(self, msg):
         self.__writebuffer += msg + "\r\n"
 
-    def messageChannel(self, channel, line, includeSelf=False):
+    def message_channel(self, channel, line, include_self=False):
         for client in channel.members:
-            if client != self or includeSelf:
+            if client != self or include_self:
                 client.message(line)
 
-    def messageRelated(self, msg, includeSelf=False):
+    def message_related(self, msg, include_self=False):
         clients = set()
-        if includeSelf:
+        if include_self:
             clients.add(self)
         for channel in self.channels.values():
             clients |= channel.members
-        if not includeSelf:
+        if not include_self:
             clients.discard(self)
         for client in clients:
             client.message(msg)
 
-    def sendMotd(self):
+    def send_motd(self):
         server = self.server
-        motdlines = server.getMotdLines()
+        motdlines = server.get_motd_lines()
         if motdlines:
             self.message(
                 ":%s 375 %s :- %s Message of the day -" % (
@@ -687,24 +687,24 @@ class Server(object):
         try:
             pid = os.fork()
             if pid > 0:
-                self.printInfo("PID: %d" % pid)
+                self.print_info("PID: %d" % pid)
                 sys.exit(0)
         except OSError:
             sys.exit(1)
         os.chdir("/")
         os.umask(0)
-        devNull = file("/dev/null", "r+")
-        os.dup2(devNull.fileno(), sys.stdout.fileno())
-        os.dup2(devNull.fileno(), sys.stderr.fileno())
-        os.dup2(devNull.fileno(), sys.stdin.fileno())
+        dev_null = file("/dev/null", "r+")
+        os.dup2(dev_null.fileno(), sys.stdout.fileno())
+        os.dup2(dev_null.fileno(), sys.stderr.fileno())
+        os.dup2(dev_null.fileno(), sys.stdin.fileno())
 
-    def getClient(self, nickname):
+    def get_client(self, nickname):
         return self.nicknames.get(irc_lower(nickname))
 
-    def getChannel(self, channelname):
+    def get_channel(self, channelname):
         return self.channels.get(irc_lower(channelname))
 
-    def getMotdLines(self):
+    def get_motd_lines(self):
         if self.motdfile:
             try:
                 f = file(self.motdfile)
@@ -714,45 +714,45 @@ class Server(object):
         else:
             return []
 
-    def printInfo(self, msg):
+    def print_info(self, msg):
         if self.verbose:
             print msg
 
-    def printDebug(self, msg):
+    def print_debug(self, msg):
         if self.debug:
             print msg
 
-    def printError(self, msg):
+    def print_error(self, msg):
         print >>sys.stderr, msg
 
-    def clientChangedNickname(self, client, oldnickname):
+    def client_changed_nickname(self, client, oldnickname):
         if oldnickname:
             del self.nicknames[irc_lower(oldnickname)]
         self.nicknames[irc_lower(client.nickname)] = client
 
-    def addMemberToChannel(self, client, channelname):
+    def add_member_to_channel(self, client, channelname):
         if self.channels.has_key(irc_lower(channelname)):
             channel = self.channels[irc_lower(channelname)]
         else:
             channel = Channel(self, channelname)
             self.channels[irc_lower(channelname)] = channel
-        channel.addMember(client)
+        channel.add_member(client)
 
-    def removeMemberFromChannel(self, client, channelname):
+    def remove_member_from_channel(self, client, channelname):
         if self.channels.has_key(irc_lower(channelname)):
             channel = self.channels[irc_lower(channelname)]
-            channel.removeClient(client)
+            channel.remove_client(client)
 
-    def removeClient(self, client, quitmsg):
-        client.messageRelated(":%s QUIT :%s" % (client.prefix, quitmsg))
+    def remove_client(self, client, quitmsg):
+        client.message_related(":%s QUIT :%s" % (client.prefix, quitmsg))
         for chan in client.channels.values():
-            chan.removeClient(client)
+            chan.remove_client(client)
         if client.nickname \
                and self.nicknames.has_key(irc_lower(client.nickname)):
             del self.nicknames[irc_lower(client.nickname)]
         del self.clients[client.socket]
 
-    def removeChannel(self, channel):
+    def remove_channel(self, channel):
         del self.channels[irc_lower(channel.name)]
 
     def start(self):
@@ -763,36 +763,36 @@ class Server(object):
             try:
                 s.bind(("", port))
             except socket.error, x:
-                self.printError("Could not bind port %s: %s." % (port, x))
+                self.print_error("Could not bind port %s: %s." % (port, x))
                 sys.exit(1)
             s.listen(5)
             serversockets.append(s)
             del s
-            self.printInfo("Listening on port %d." % port)
+            self.print_info("Listening on port %d." % port)
 
-        lastAlivenessCheck = time.time()
+        last_aliveness_check = time.time()
         while True:
             iwtd, owtd, ewtd = select.select(
                 serversockets + [x.socket for x in self.clients.values()],
                 [x.socket for x in self.clients.values()
-                          if x.writeQueueSize() > 0],
+                          if x.write_queue_size() > 0],
                 [],
                 10)
             for x in iwtd:
                 if x in self.clients:
-                    self.clients[x].socketReadableNotification()
+                    self.clients[x].socket_readable_notification()
                 else:
                     conn, addr = x.accept()
                     self.clients[conn] = Client(self, conn)
-                    self.printInfo("Accepted connection from %s:%s." % (
+                    self.print_info("Accepted connection from %s:%s." % (
                         addr[0], addr[1]))
             for x in owtd:
-                self.clients[x].socketWritableNotification()
+                self.clients[x].socket_writable_notification()
             now = time.time()
-            if lastAlivenessCheck + 10 < now:
+            if last_aliveness_check + 10 < now:
                 for client in self.clients.values():
-                    client.checkAliveness()
-                lastAlivenessCheck = now
+                    client.check_aliveness()
+                last_aliveness_check = now
 
 _alpha = "abcdefghijklmnopqrstuvwxyz"
 _special = "-[]\\`^{}"
@@ -806,7 +806,7 @@ def irc_lower(s):
 
 ######################################################################
 
-def displayUsage():
+def display_usage():
     print "Usage: miniircd [arguments]"
     print
     print "miniircd is a small and limited IRC server."
@@ -850,7 +850,7 @@ def main(argv):
             debug = True
             verbose = True
         elif opt in ("-h", "--help"):
-            displayUsage()
+            display_usage()
             sys.exit(0)
         elif opt == "--motd":
             motd = val
@@ -872,6 +872,6 @@ def main(argv):
     try:
         server.start()
     except KeyboardInterrupt:
-        server.printError("Interrupted.")
+        server.print_error("Interrupted.")
 
 main(sys.argv)

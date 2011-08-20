@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # Hey, Emacs! This is -*-python-*-.
 #
-# Copyright (C) 2003 Joel Rosdahl
+# Copyright (C) 2003, 2011 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -630,6 +630,8 @@ class Client(object):
     def socketReadableNotification(self):
         try:
             data = self.socket.recv(2**10)
+            self.__server.printDebug(
+                "[%s:%d] -> %r" % (self.__host, self.__port, data))
             quitmsg = "EOT"
         except socket.error, x:
             data = ""
@@ -645,6 +647,9 @@ class Client(object):
     def socketWritableNotification(self):
         try:
             sent = self.socket.send(self.__writebuffer)
+            self.__server.printDebug(
+                "[%s:%d] <- %r" % (
+                    self.__host, self.__port, self.__writebuffer[:sent]))
             self.__writebuffer = self.__writebuffer[sent:]
         except socket.error, x:
             self.disconnect(x)
@@ -697,10 +702,11 @@ class Client(object):
                 self.nickname))
 
 class Server(object):
-    def __init__(self, ports, password, motdfile, verbose):
+    def __init__(self, ports, password, motdfile, verbose, debug):
         self.__ports = ports
         self.__password = password
         self.__verbose = verbose
+        self.__debug = debug
         self.__channels = {} # irc_lower(Channel name) --> Channel instance.
         self.__clients = {}  # Socket --> Client instance.
         self.__nicknames = {} # irc_lower(Nickname) --> Client instance.
@@ -759,6 +765,10 @@ class Server(object):
 
     def printInfo(self, msg):
         if self.__verbose:
+            print msg
+
+    def printDebug(self, msg):
+        if self.__debug:
             print msg
 
     def printError(self, msg):
@@ -853,6 +863,7 @@ def displayUsage():
     print "Arguments:"
     print
     print "    -d, --daemon         Fork and become a daemon."
+    print "        --debug          Print debug messages to stdout."
     print "    -h, --help           Show this help text."
     print "        --motd X         Display file X as message of the day."
     print "    -p, --password X     Require connection password X. Default: no password."
@@ -866,6 +877,7 @@ def main(argv):
             argv[1:],
             "dhp:v",
             ["daemon",
+             "debug",
              "help",
              "motd=",
              "password=",
@@ -879,9 +891,13 @@ def main(argv):
     ports = [6667]
     verbose = False
     daemon = False
+    debug = False
     for opt, val in optlist:
         if opt in ("-d", "--daemon"):
             daemon = True
+        elif opt == "--debug":
+            debug = True
+            verbose = True
         elif opt in ("-h", "--help"):
             displayUsage()
             sys.exit(0)
@@ -899,7 +915,7 @@ def main(argv):
                     sys.exit(1)
         elif opt in ("-v", "--verbose"):
             verbose = True
-    server = Server(ports, password, motd, verbose)
+    server = Server(ports, password, motd, verbose, debug)
     if daemon:
         server.daemonize()
     try:

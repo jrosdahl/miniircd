@@ -123,7 +123,7 @@ class Client(object):
         server = self.server
         if command == "PASS":
             if len(arguments) == 0:
-                self.reply("461 * PASS :Not enough parameters")
+                self.reply_461("PASS")
             else:
                 if arguments[0].lower() == server.password:
                     self.__handle_command = self.__registration_handler
@@ -149,7 +149,7 @@ class Client(object):
                 server.client_changed_nickname(self, None)
         elif command == "USER":
             if len(arguments) < 4:
-                self.reply("461 * USER :Not enough parameters")
+                self.reply_461("USER")
                 return
             self.user = arguments[0]
             self.realname = arguments[3]
@@ -175,8 +175,7 @@ class Client(object):
 
         def join_handler():
             if len(arguments) < 1:
-                self.reply("461 %s JOIN :Not enough parameters"
-                           % self.nickname)
+                self.reply_461("JOIN")
                 return
             if arguments[0] == "0":
                 for channelname, channel in self.channels.items():
@@ -233,8 +232,7 @@ class Client(object):
 
         def mode_handler():
             if len(arguments) < 1:
-                self.reply("461 %s MODE :Not enough parameters"
-                           % self.nickname)
+                self.reply_461("MODE")
                 return
             targetname = arguments[0]
             channel = server.get_channel(targetname)
@@ -317,8 +315,7 @@ class Client(object):
 
         def part_handler():
             if len(arguments) < 1:
-                self.reply("461 %s PART :Not enough parameters"
-                           % self.nickname)
+                self.reply_461("PART")
                 return
             if len(arguments) > 1:
                 partmsg = arguments[1]
@@ -361,8 +358,7 @@ class Client(object):
 
         def topic_handler():
             if len(arguments) < 1:
-                self.reply("461 %s TOPIC :Not enough parameters"
-                           % self.nickname)
+                self.reply_461("TOPIC")
                 return
             channelname = arguments[0]
             if channelname in self.channels:
@@ -487,6 +483,10 @@ class Client(object):
 
     def reply(self, msg):
         self.message(":%s %s" % (self.server.name, msg))
+
+    def reply_461(self, command):
+        nickname = self.nickname or "*"
+        self.reply("461 %s %s :Not enough parameters" % (nickname, command))
 
     def message_channel(self, channel, line, include_self=False):
         for client in channel.members:

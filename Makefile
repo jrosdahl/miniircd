@@ -1,6 +1,6 @@
 VERSION := $(shell sed -n -e '/version = /{s/version = "\(.*\)"/\1/;p;}' <miniircd)
 
-DISTFILES = miniircd COPYING README
+DISTFILES = miniircd COPYING README.md
 
 all:
 	echo "Nothing to do."

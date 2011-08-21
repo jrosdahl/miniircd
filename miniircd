@@ -177,10 +177,7 @@ class Client(object):
                 return
             if arguments[0] == "0":
                 for (channelname, channel) in self.channels.items():
-                    self.message_channel(
-                        channel,
-                        ":%s PART %s" % (self.prefix, channelname),
-                        True)
+                    self.message_channel(channel, "PART", channelname, True)
                     self.channel_log(channel, "left", meta=True)
                     server.remove_member_from_channel(self, channelname)
                 self.channels = {}
@@ -196,9 +193,7 @@ class Client(object):
                         channel = server.get_channel(channelname)
                         self.channels[irc_lower(channelname)] = channel
                         self.message_channel(
-                            channel,
-                            ":%s JOIN %s" % (self.prefix, channelname),
-                            True)
+                            channel, "JOIN", channelname, True)
                         self.channel_log(channel, "joined", meta=True)
                         if channel.topic:
                             self.reply(
@@ -279,11 +274,8 @@ class Client(object):
                 self.nickname = newnick
                 server.client_changed_nickname(self, oldnickname)
                 self.message_related(
-                    ":%s!%s@%s NICK %s" % (
-                        oldnickname,
-                        self.user,
-                        self.host,
-                        self.nickname),
+                    ":%s!%s@%s NICK %s"
+                    % (oldnickname, self.user, self.host, self.nickname),
                     True)
 
         def notice_and_privmsg_handler():
@@ -297,18 +289,13 @@ class Client(object):
             message = arguments[1]
             client = server.get_client(targetname)
             if client:
-                client.message(":%s %s %s :%s" % (
-                    self.prefix,
-                    command,
-                    targetname,
-                    message))
+                client.message(":%s %s %s :%s"
+                               % (self.prefix, command, targetname, message))
             else:
                 channel = server.get_channel(targetname)
                 if channel:
                     self.message_channel(
-                        channel,
-                        ":%s %s %s :%s"
-                        % (self.prefix, command, channel.name, message))
+                        channel, command, "%s :%s" % (channel.name, message))
                     self.channel_log(channel, message)
                 else:
                     self.reply("401 %s %s :No such nick/channel"
@@ -332,11 +319,7 @@ class Client(object):
                 else:
                     channel = self.channels[irc_lower(channelname)]
                     self.message_channel(
-                        channel,
-                        ":%s PART %s :%s" % (
-                            self.prefix,
-                            channelname,
-                            partmsg),
+                        channel, "PART", "%s :%s" % (channelname, partmsg),
                         True)
                     self.channel_log(channel, "left (%s)" % partmsg, meta=True)
                     del self.channels[irc_lower(channelname)]
@@ -369,11 +352,7 @@ class Client(object):
                     newtopic = arguments[1]
                     channel.topic = newtopic
                     self.message_channel(
-                        channel,
-                        ":%s TOPIC %s :%s" % (
-                            self.prefix,
-                            channelname,
-                            newtopic),
+                        channel, "TOPIC", "%s :%s" % (channelname, newtopic),
                         True)
                     self.channel_log(
                         channel, "set topic to %r" % newtopic, meta=True)
@@ -492,7 +471,8 @@ class Client(object):
         nickname = self.nickname or "*"
         self.reply("461 %s %s :Not enough parameters" % (nickname, command))
 
-    def message_channel(self, channel, line, include_self=False):
+    def message_channel(self, channel, command, message, include_self=False):
+        line = ":%s %s %s" % (self.prefix, command, message)
         for client in channel.members:
             if client != self or include_self:
                 client.message(line)

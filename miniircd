@@ -39,15 +39,12 @@ class Channel(object):
         self.name = name
         self.members = set()
         self.topic = ""
-        self.__operators = set()
-        self.__voiced = set()
 
     def add_member(self, client):
         self.members.add(client)
 
     def remove_client(self, client):
-        for x in [self.members, self.__operators, self.__voiced]:
-            x.discard(client)
+        self.members.discard(client)
         if not self.members:
             self.server.remove_channel(self)
 

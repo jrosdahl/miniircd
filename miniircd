@@ -155,14 +155,14 @@ class Client(object):
             self.disconnect("Client quit")
             return
         if self.nickname and self.user:
-            self.reply("001 %s :Yo, welcome to IRC" % self.nickname)
+            self.reply("001 %s :Hi, welcome to IRC" % self.nickname)
             self.reply("002 %s :Your host is %s, running version miniircd-%s"
                        % (self.nickname, server.name, version))
             self.reply("003 %s :This server was created sometime"
                        % self.nickname)
             self.reply("004 %s :%s miniircd-%s o o"
                        % (self.nickname, server.name, version))
-            self.reply("251 %s :There are %d users and 0 services on 1 servers"
+            self.reply("251 %s :There are %d users and 0 services on 1 server"
                        % (self.nickname, len(server.clients)))
             self.send_motd()
             self.__handle_command = self.__command_handler

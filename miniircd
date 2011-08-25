@@ -20,7 +20,7 @@
 #
 # Joel Rosdahl <joel@rosdahl.net>
 
-version = "0.2.0"
+VERSION = "0.3"
 
 import os
 import select
@@ -157,11 +157,11 @@ class Client(object):
         if self.nickname and self.user:
             self.reply("001 %s :Hi, welcome to IRC" % self.nickname)
             self.reply("002 %s :Your host is %s, running version miniircd-%s"
-                       % (self.nickname, server.name, version))
+                       % (self.nickname, server.name, VERSION))
             self.reply("003 %s :This server was created sometime"
                        % self.nickname)
             self.reply("004 %s :%s miniircd-%s o o"
-                       % (self.nickname, server.name, version))
+                       % (self.nickname, server.name, VERSION))
             self.reply("251 %s :There are %d users and 0 services on 1 server"
                        % (self.nickname, len(server.clients)))
             self.send_motd()
@@ -657,7 +657,7 @@ def irc_lower(s):
 
 def main(argv):
     op = OptionParser(
-        version=version,
+        version=VERSION,
         description="miniircd is a small and limited IRC server.")
     op.add_option(
         "-d", "--daemon",

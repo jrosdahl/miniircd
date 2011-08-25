@@ -1,3 +1,11 @@
+0.3 2011-08-25
+
+  * Added --debug flag.
+  * Added optional logging of channel messages to file.
+  * Send a 251 message upon registration to please Pidgin.
+  * Understand but ignore AWAY messages.
+  * Various code cleanup.
+
 0.2.0 2003-12-12
 
   * Added switch for specifying a MOTD file.

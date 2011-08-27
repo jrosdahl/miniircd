@@ -1,4 +1,4 @@
-VERSION := $(shell sed -ne 's/^version = "\(.*\)"/\1/p' miniircd)
+VERSION := $(shell sed -ne 's/^VERSION = "\(.*\)"/\1/p' miniircd)
 
 DISTFILES = miniircd COPYING README.md
 

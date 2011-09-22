@@ -186,8 +186,7 @@ class Client(object):
                     if irc_lower(arguments[0]) in self.channels:
                         pass
                     elif not valid_channel_re.match(channelname):
-                        self.reply("403 %s %s :No such channel"
-                                   % (self.nickname, channelname))
+                        self.reply_403(channelname)
                     else:
                         server.add_member_to_channel(self, channelname)
                         channel = server.get_channel(channelname)
@@ -246,8 +245,7 @@ class Client(object):
                     else:
                         self.reply("501 %s :Unknown MODE flag" % self.nickname)
                 else:
-                    self.reply("403 %s %s :That channel doesn't exist"
-                               % (self.nickname, targetname))
+                    self.reply_403(targetname)
 
         def motd_handler():
             self.send_motd()
@@ -311,8 +309,7 @@ class Client(object):
                 partmsg = self.nickname
             for channelname in arguments[0].split(","):
                 if not valid_channel_re.match(channelname):
-                    self.reply("403 %s %s :No such channel"
-                               % (self.nickname, channelname))
+                    self.reply_403(channelname)
                 elif not irc_lower(channelname) in self.channels:
                     self.reply("442 %s %s :You're not on that channel"
                                % (self.nickname, channelname))
@@ -466,6 +463,9 @@ class Client(object):
 
     def reply(self, msg):
         self.message(":%s %s" % (self.server.name, msg))
+
+    def reply_403(self, channel):
+        self.reply("403 %s %s :No such channel" % (self.nickname, channel))
 
     def reply_461(self, command):
         nickname = self.nickname or "*"

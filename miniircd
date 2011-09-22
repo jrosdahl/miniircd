@@ -39,6 +39,7 @@ class Channel(object):
         self.name = name
         self.members = set()
         self.topic = ""
+        self.key = None
 
     def add_member(self, client):
         self.members.add(client)
@@ -181,33 +182,43 @@ class Client(object):
                     self.channel_log(channel, "left", meta=True)
                     server.remove_member_from_channel(self, channelname)
                 self.channels = {}
+                return
+            channelnames = arguments[0].split(",")
+            if len(arguments) > 1:
+                keys = arguments[1].split(",")
             else:
-                for channelname in arguments[0].split(","):
-                    if irc_lower(arguments[0]) in self.channels:
-                        pass
-                    elif not valid_channel_re.match(channelname):
-                        self.reply_403(channelname)
-                    else:
-                        server.add_member_to_channel(self, channelname)
-                        channel = server.get_channel(channelname)
-                        self.channels[irc_lower(channelname)] = channel
-                        self.message_channel(
-                            channel, "JOIN", channelname, True)
-                        self.channel_log(channel, "joined", meta=True)
-                        if channel.topic:
-                            self.reply(
-                                "332 %s %s :%s"
-                                % (self.nickname, channel.name, channel.topic))
-                        else:
-                            self.reply("331 %s %s :No topic is set"
-                                       % (self.nickname, channel.name))
-                        self.reply("353 %s = %s :%s"
-                                   % (self.nickname,
-                                      channelname,
-                                      " ".join([x.nickname
-                                                for x in channel.members])))
-                        self.reply("366 %s %s :End of NAMES list"
-                                   % (self.nickname, channelname))
+                keys = []
+            keys.extend((len(channelnames) - len(keys)) * [None])
+            for (i, channelname) in enumerate(channelnames):
+                if channelname in self.channels:
+                    continue
+                if not valid_channel_re.match(channelname):
+                    self.reply_403(channelname)
+                    continue
+                channel = server.get_channel(channelname)
+                if channel and channel.key != keys[i]:
+                    self.reply(
+                        "475 %s %s :Cannot join channel (+k) - bad key"
+                        % (self.nickname, channelname))
+                    continue
+                server.add_member_to_channel(self, channelname)
+                channel = server.get_channel(channelname)
+                self.channels[irc_lower(channelname)] = channel
+                self.message_channel(channel, "JOIN", channelname, True)
+                self.channel_log(channel, "joined", meta=True)
+                if channel.topic:
+                    self.reply("332 %s %s :%s"
+                               % (self.nickname, channel.name, channel.topic))
+                else:
+                    self.reply("331 %s %s :No topic is set"
+                               % (self.nickname, channel.name))
+                self.reply("353 %s = %s :%s"
+                           % (self.nickname,
+                              channelname,
+                              " ".join([x.nickname
+                                        for x in channel.members])))
+                self.reply("366 %s %s :End of NAMES list"
+                           % (self.nickname, channelname))
 
         def list_handler():
             if len(arguments) < 1:
@@ -231,21 +242,51 @@ class Client(object):
             targetname = arguments[0]
             channel = server.get_channel(targetname)
             if channel:
-                if len(arguments) > 1:
-                    modes = arguments[1]
-                    self.reply("472 %s %s :Unknown MODE flag"
-                               % (self.nickname, modes))
-                else:
-                    self.reply("324 %s %s +"
-                               % (self.nickname, targetname))
-            else:
-                if targetname == self.nickname:
-                    if len(arguments) == 1:
-                        self.reply("221 %s +" % self.nickname)
+                if len(arguments) < 2:
+                    if channel.key:
+                        modes = "+k"
+                        if irc_lower(channel.name) in self.channels:
+                            modes += " %s" % channel.key
                     else:
-                        self.reply("501 %s :Unknown MODE flag" % self.nickname)
+                        modes = "+"
+                    self.reply("324 %s %s %s"
+                               % (self.nickname, targetname, modes))
+                    return
+                flag = arguments[1]
+                if flag == "+k":
+                    if len(arguments) < 3:
+                        self.reply_461("JOIN")
+                        return
+                    key = arguments[2]
+                    if irc_lower(channel.name) in self.channels:
+                        channel.key = key
+                        self.message_channel(
+                            channel, "MODE", "%s +k %s" % (channel.name, key),
+                            True)
+                        self.channel_log(
+                            channel, "set channel key to %s" % key, meta=True)
+                    else:
+                        self.reply("442 %s: You're not on that channel")
+                elif flag == "-k":
+                    if irc_lower(channel.name) in self.channels:
+                        channel.key = None
+                        self.message_channel(
+                            channel, "MODE", "%s -k" % channel.name,
+                            True)
+                        self.channel_log(
+                            channel, "removed channel key", meta=True)
+                    else:
+                        self.reply("442 %s: You're not on that channel")
                 else:
-                    self.reply_403(targetname)
+                    self.reply("472 %s %s :Unknown MODE flag"
+                               % (self.nickname, flag))
+            elif targetname == self.nickname:
+                if len(arguments) == 1:
+                    self.reply("221 %s +" % self.nickname)
+                else:
+                    self.reply("501 %s :Unknown MODE flag" % self.nickname)
+            else:
+                self.reply_403(targetname)
 
         def motd_handler():
             self.send_motd()

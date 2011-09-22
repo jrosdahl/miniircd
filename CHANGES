@@ -1,3 +1,8 @@
+UNRELEASED
+
+  * Added support for channel keys.
+  * 422 message is now sent after registration when no MOTD is available.
+
 0.3 2011-08-25
 
   * Added --debug flag.

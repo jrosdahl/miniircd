@@ -510,6 +510,8 @@ class Client(object):
             for line in motdlines:
                 self.reply("372 %s :- %s" % (self.nickname, line.rstrip()))
             self.reply("376 %s :End of /MOTD command" % self.nickname)
+        else:
+            self.reply("422 %s :MOTD File is missing" % self.nickname)
 
 
 class Server(object):

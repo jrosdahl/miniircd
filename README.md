@@ -24,7 +24,7 @@ Limitations
 * Only knows the most basic IRC commands.
 * No IRC operators.
 * No channel operators.
-* No user or channel modes.
+* No user or channel modes except channel key.
 * No reverse DNS lookup.
 * No other mechanism to reject clients than requiring a password.
 

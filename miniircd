@@ -405,6 +405,14 @@ class Client(object):
             else:
                 self.reply("442 %s :You're not on that channel" % channelname)
 
+        def wallops_handler():
+            if len(arguments) < 1:
+                self.reply_461(command)
+            message = arguments[0]
+            for client in server.clients.values():
+                client.message(":%s NOTICE %s :Global notice: %s"
+                               % (self.prefix, client.nickname, message))
+
         def who_handler():
             if len(arguments) < 1:
                 return
@@ -454,6 +462,7 @@ class Client(object):
             "PRIVMSG": notice_and_privmsg_handler,
             "QUIT": quit_handler,
             "TOPIC": topic_handler,
+            "WALLOPS": wallops_handler,
             "WHO": who_handler,
             "WHOIS": whois_handler,
         }

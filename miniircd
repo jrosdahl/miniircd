@@ -196,7 +196,9 @@ class Client(object):
                     self.reply_403(channelname)
                     continue
                 channel = server.get_channel(channelname)
-                if channel and channel.key != keys[i]:
+                if channel \
+                        and channel.key is not None \
+                        and channel.key != keys[i]:
                     self.reply(
                         "475 %s %s :Cannot join channel (+k) - bad key"
                         % (self.nickname, channelname))

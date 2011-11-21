@@ -619,10 +619,12 @@ class Server(object):
     def print_info(self, msg):
         if self.verbose:
             print msg
+            sys.stdout.flush()
 
     def print_debug(self, msg):
         if self.debug:
             print msg
+            sys.stdout.flush()
 
     def print_error(self, msg):
         sys.stderr.write("%s\n" % msg)

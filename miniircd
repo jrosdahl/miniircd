@@ -33,6 +33,11 @@ from datetime import datetime
 from optparse import OptionParser
 
 
+def create_directory(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+
 class Channel(object):
     def __init__(self, server, name):
         self.server = server
@@ -577,8 +582,8 @@ class Server(object):
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
         self.clients = {}  # Socket --> Client instance.
         self.nicknames = {}  # irc_lower(Nickname) --> Client instance.
-        if self.logdir and not os.path.isdir(self.logdir):
-            os.makedirs(self.logdir)
+        if self.logdir:
+            create_directory(self.logdir)
 
     def daemonize(self):
         try:

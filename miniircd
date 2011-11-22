@@ -205,7 +205,6 @@ class Client(object):
                     continue
                 server.add_member_to_channel(self, channelname)
                 channel = server.get_channel(channelname)
-                self.channels[irc_lower(channelname)] = channel
                 self.message_channel(channel, "JOIN", channelname, True)
                 self.channel_log(channel, "joined", meta=True)
                 if channel.topic:
@@ -640,8 +639,7 @@ class Server(object):
         if irc_lower(channelname) in self.channels:
             channel = self.channels[irc_lower(channelname)]
         else:
-            channel = Channel(self, channelname)
-            self.channels[irc_lower(channelname)] = channel
+            channel = self.add_channel(channelname)
         channel.add_member(client)
 
     def remove_member_from_channel(self, client, channelname):
@@ -658,6 +656,11 @@ class Server(object):
                and irc_lower(client.nickname) in self.nicknames:
             del self.nicknames[irc_lower(client.nickname)]
         del self.clients[client.socket]
+
+    def add_channel(self, name):
+        channel = Channel(self, channelname)
+        self.channels[irc_lower(channelname)] = channel
+        return channel
 
     def remove_channel(self, channel):
         del self.channels[irc_lower(channel.name)]

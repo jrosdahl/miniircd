@@ -147,7 +147,7 @@ class Client(object):
             if server.get_client(nick):
                 self.reply("433 * %s :Nickname is already in use" % nick)
             elif not self.__valid_nickname_regexp.match(nick):
-                self.reply("432 * %s :Erroneous Nickname" % nick)
+                self.reply("432 * %s :Erroneous nickname" % nick)
             else:
                 self.nickname = nick
                 server.client_changed_nickname(self, None)
@@ -261,7 +261,7 @@ class Client(object):
                 flag = arguments[1]
                 if flag == "+k":
                     if len(arguments) < 3:
-                        self.reply_461("JOIN")
+                        self.reply_461("MODE")
                         return
                     key = arguments[2]
                     if irc_lower(channel.name) in self.channels:
@@ -272,7 +272,8 @@ class Client(object):
                         self.channel_log(
                             channel, "set channel key to %s" % key, meta=True)
                     else:
-                        self.reply("442 %s: You're not on that channel")
+                        self.reply("442 %s :You're not on that channel"
+                                   % targetname)
                 elif flag == "-k":
                     if irc_lower(channel.name) in self.channels:
                         channel.key = None
@@ -282,7 +283,8 @@ class Client(object):
                         self.channel_log(
                             channel, "removed channel key", meta=True)
                     else:
-                        self.reply("442 %s: You're not on that channel")
+                        self.reply("442 %s :You're not on that channel"
+                                   % targetname)
                 else:
                     self.reply("472 %s %s :Unknown MODE flag"
                                % (self.nickname, flag))
@@ -325,7 +327,8 @@ class Client(object):
 
         def notice_and_privmsg_handler():
             if len(arguments) == 0:
-                self.reply("411 %s :No recipient given" % self.nickname)
+                self.reply("411 %s :No recipient given (%s)"
+                           % (self.nickname, command))
                 return
             if len(arguments) == 1:
                 self.reply("412 %s :No text to send" % self.nickname)

@@ -221,8 +221,8 @@ class Client(object):
                 self.reply("353 %s = %s :%s"
                            % (self.nickname,
                               channelname,
-                              " ".join([x.nickname
-                                        for x in channel.members])))
+                              " ".join(sorted(x.nickname
+                                              for x in channel.members))))
                 self.reply("366 %s %s :End of NAMES list"
                            % (self.nickname, channelname))
 
@@ -235,6 +235,7 @@ class Client(object):
                     channel = server.get_channel(channelname)
                     if channel:
                         channels.append(channel)
+            channels.sort(key=lambda x: x.name)
             for channel in channels:
                 self.reply("322 %s %s %d :%s"
                            % (self.nickname, channel.name,

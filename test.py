@@ -77,7 +77,7 @@ class ServerFixture(object):
         signal.alarm(1)  # Give the server 1 second to respond
         line = self.connections[nick].readline().rstrip()
         signal.alarm(0)  # Cancel the alarm
-        regexp = "^%s$" % regexp
+        regexp = ("^%s$" % regexp).replace(r"local\S+", socket.getfqdn())
         m = re.match(regexp, line)
         if m:
             return m
@@ -240,6 +240,15 @@ class TestBasicStuff(ServerFixture):
         self.send("lemur", "PART #fisk :boa")
         self.expect("lemur", r":lemur!lemur@127.0.0.1 PART #fisk :boa")
         self.expect("apa", r":lemur!lemur@127.0.0.1 PART #fisk :boa")
+
+    def test_ison(self):
+        self.connect("apa")
+        self.send("apa", "ISON apa lemur")
+        self.expect("apa", r":local\S+ 303 apa :apa")
+
+        self.connect("lemur")
+        self.send("apa", "ISON apa lemur")
+        self.expect("apa", r":local\S+ 303 apa :apa lemur")
 
 
 class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):

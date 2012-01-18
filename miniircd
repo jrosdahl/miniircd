@@ -221,6 +221,14 @@ class Client(object):
         def away_handler():
             pass
 
+        def ison_handler():
+            if len(arguments) < 1:
+                self.reply_461("ISON")
+                return
+            nicks = arguments
+            online = [n for n in nicks if server.get_client(n)]
+            self.reply("303 %s :%s" % (self.nickname, " ".join(online)))
+
         def join_handler():
             if len(arguments) < 1:
                 self.reply_461("JOIN")
@@ -500,6 +508,7 @@ class Client(object):
 
         handler_table = {
             "AWAY": away_handler,
+            "ISON": ison_handler,
             "JOIN": join_handler,
             "LIST": list_handler,
             "MODE": mode_handler,
@@ -820,3 +829,5 @@ def main(argv):
 
 
 main(sys.argv)
+
+# ex:et:sw=4:ts=4

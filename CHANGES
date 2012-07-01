@@ -1,7 +1,8 @@
-UNRELEASED
+0.4 2012-07-01
 
   * Added support for channel keys.
-  * 422 message is now sent after registration when no MOTD is available.
+  * 422 message is now sent after registration when no MOTD is available. This
+    is apparently needed by some clients.
   * Added support for WALLOPS command.
   * Added option to store persistent state (currently channel topic and key).
   * Fixed crash when the write queue for a disconnected client is non-empty.

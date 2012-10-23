@@ -506,9 +506,10 @@ class Client(object):
                 if user.away != False:
                     self.reply('301 %s %s :%s'
                                % (self.nickname, user.nickname, user.away))
-                self.reply("319 %s %s :%s"
-                           % (self.nickname, user.nickname,
-                              " ".join(user.channels)))
+                if len(user.channels) != 0:
+                    self.reply("319 %s %s :%s"
+                               % (self.nickname, user.nickname,
+                                  " ".join(user.channels)))
                 self.reply("318 %s %s :End of WHOIS list"
                            % (self.nickname, user.nickname))
             else:

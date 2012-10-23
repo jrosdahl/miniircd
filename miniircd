@@ -393,6 +393,8 @@ class Client(object):
             message = arguments[1]
             client = server.get_client(targetname)
             if client:
+                if client.away:
+                    self.reply('301 %s %s :%s' % (self.nickname, client.nickname, client.away))
                 client.message(":%s %s %s :%s"
                                % (self.prefix, command, targetname, message))
             elif server.has_channel(targetname):

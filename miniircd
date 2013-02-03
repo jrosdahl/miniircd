@@ -212,8 +212,7 @@ class Client(object):
                        % self.nickname)
             self.reply("004 %s :%s miniircd-%s o o"
                        % (self.nickname, server.name, VERSION))
-            self.reply("251 %s :There are %d users and 0 services on 1 server"
-                       % (self.nickname, len(server.clients)))
+            self.send_lusers()
             self.send_motd()
             self.__handle_command = self.__command_handler
 
@@ -230,8 +229,7 @@ class Client(object):
             self.reply("303 %s :%s" % (self.nickname, " ".join(online)))
 
         def lusers_handler():
-            self.reply("251 %s :There are %d users and 0 services on 1 server"
-                       % (self.nickname, len(server.clients)))
+            self.send_lusers()
 
         def join_handler():
             if len(arguments) < 1:
@@ -614,6 +612,10 @@ class Client(object):
             clients.discard(self)
         for client in clients:
             client.message(msg)
+
+    def send_lusers(self):
+        self.reply("251 %s :There are %d users and 0 services on 1 server"
+                   % (self.nickname, len(self.server.clients)))
 
     def send_motd(self):
         server = self.server

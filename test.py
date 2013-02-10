@@ -55,6 +55,7 @@ class ServerFixture(object):
 
     def shutDown(self):
         os.kill(self.child_pid, signal.SIGTERM)
+        os.waitpid(self.child_pid, 0)
         if self.state_dir:
             try:
                 shutil.rmtree(self.state_dir)

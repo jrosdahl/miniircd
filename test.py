@@ -251,6 +251,11 @@ class TestBasicStuff(ServerFixture):
         self.send("apa", "ISON apa lemur")
         self.expect("apa", r":local\S+ 303 apa :apa lemur")
 
+    def test_lusers(self):
+        self.connect("apa")
+        self.send("apa", "lusers")
+        self.expect("apa", r":local\S+ 251 apa :There are \d+ users and \d+ services on \d+ servers*")
+
 
 class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):
     def test_privmsg_to_channel(self):

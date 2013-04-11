@@ -214,8 +214,7 @@ class Client(object):
                        % self.nickname)
             self.reply("004 %s :%s miniircd-%s o o"
                        % (self.nickname, server.name, VERSION))
-            self.reply("251 %s :There are %d users and 0 services on 1 server"
-                       % (self.nickname, len(server.clients)))
+            self.send_lusers()
             self.send_motd()
             self.__handle_command = self.__command_handler
 
@@ -310,6 +309,9 @@ class Client(object):
                            % (self.nickname, channel.name,
                               len(channel.members), channel.topic))
             self.reply("323 %s :End of LIST" % self.nickname)
+
+        def lusers_handler():
+            self.send_lusers()
 
         def mode_handler():
             if len(arguments) < 1:
@@ -537,6 +539,7 @@ class Client(object):
             "ISON": ison_handler,
             "JOIN": join_handler,
             "LIST": list_handler,
+            "LUSERS": lusers_handler,
             "MODE": mode_handler,
             "MOTD": motd_handler,
             "NICK": nick_handler,
@@ -646,6 +649,10 @@ class Client(object):
             clients.discard(self)
         for client in clients:
             client.message(msg)
+
+    def send_lusers(self):
+        self.reply("251 %s :There are %d users and 0 services on 1 server"
+                   % (self.nickname, len(self.server.clients)))
 
     def send_motd(self):
         server = self.server

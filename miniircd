@@ -114,6 +114,7 @@ class Client(object):
         self.nickname = None
         self.user = None
         self.realname = None
+        self.away = False
         (self.host, self.port) = socket.getpeername()
         self.__timestamp = time.time()
         self.__readbuffer = ""
@@ -219,7 +220,12 @@ class Client(object):
 
     def __command_handler(self, command, arguments):
         def away_handler():
-            pass
+            if not arguments:
+                self.away = False
+                self.reply('305 %s :You are no longer marked as being away' % self.nickname)
+            else:
+                self.away = arguments[0]
+                self.reply('306 %s :You have been marked as being away' % self.nickname)
 
         def ison_handler():
             if len(arguments) < 1:
@@ -387,6 +393,8 @@ class Client(object):
             message = arguments[1]
             client = server.get_client(targetname)
             if client:
+                if client.away:
+                    self.reply('301 %s %s :%s' % (self.nickname, client.nickname, client.away))
                 client.message(":%s %s %s :%s"
                                % (self.prefix, command, targetname, message))
             elif server.has_channel(targetname):
@@ -497,9 +505,13 @@ class Client(object):
                 self.reply("312 %s %s %s :%s"
                            % (self.nickname, user.nickname, server.name,
                               server.name))
-                self.reply("319 %s %s :%s"
-                           % (self.nickname, user.nickname,
-                              " ".join(user.channels)))
+                if user.away != False:
+                    self.reply('301 %s %s :%s'
+                               % (self.nickname, user.nickname, user.away))
+                if len(user.channels) != 0:
+                    self.reply("319 %s %s :%s"
+                               % (self.nickname, user.nickname,
+                                  " ".join(user.channels)))
                 self.reply("318 %s %s :End of WHOIS list"
                            % (self.nickname, user.nickname))
             else:

@@ -30,9 +30,14 @@ import string
 import sys
 import tempfile
 import time
+import logging
 from datetime import datetime
 from optparse import OptionParser
 
+
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler())
 
 def create_directory(path):
     if not os.path.isdir(path):
@@ -276,7 +281,7 @@ class Client(object):
                 else:
                     self.reply("331 %s %s :No topic is set"
                                % (self.nickname, channel.name))
-                self.reply("353 %s = %s :%s S"
+                self.reply("353 %s = %s :%s"
                            % (self.nickname,
                               channelname,
                               " ".join(sorted(x.nickname
@@ -290,8 +295,8 @@ class Client(object):
                     t = time.strftime("%H:%M", local)
                     if date != curdate:
                         curdate = date
-                        self.message(":S!S@S PRIVMSG %s :Day changed to %s"%(channel.name,date))
-                    line = ":S!S@S PRIVMSG %s :%s %s" % (channel.name,t,line)
+                        self.message(":_!_@_ PRIVMSG %s :Day changed to %s"%(channel.name,date))
+                    line = ":_!_@_ PRIVMSG %s :%s %s" % (channel.name,t,line)
                     print("Sending",line)
                     self.message(line)
 
@@ -564,8 +569,7 @@ class Client(object):
     def socket_readable_notification(self):
         try:
             data = self.socket.recv(2 ** 10)
-            self.server.print_debug(
-                "[%s:%d] -> %r" % (self.host, self.port, data))
+            log.debug("[%s:%d] -> %r" % (self.host, self.port, data)) 
             quitmsg = "EOT"
         except socket.error, x:
             data = ""
@@ -576,23 +580,20 @@ class Client(object):
             self.__timestamp = time.time()
             self.__sent_ping = False
         else:
-            self.disconnect(quitmsg)
+            self.__timestamp = time.time()
+            #self.disconnect(quitmsg)
 
     def socket_writable_notification(self):
         try:
             sent = self.socket.send(self.__writebuffer)
-            self.server.print_debug(
-                "[%s:%d] <- %r" % (
-                    self.host, self.port, self.__writebuffer[:sent]))
+            log.debug("[%s:%d] <- %r" % (self.host, self.port, self.__writebuffer[:sent]))
             self.__writebuffer = self.__writebuffer[sent:]
         except socket.error, x:
             self.disconnect(x)
 
     def disconnect(self, quitmsg):
         self.message("ERROR :%s" % quitmsg)
-        self.server.print_info(
-            "Disconnected connection from %s:%s (%s)." % (
-                self.host, self.port, quitmsg))
+        log.info("Disconnected connection from %s:%s (%s)." % (self.host, self.port, quitmsg))
         self.socket.close()
         self.server.remove_client(self, quitmsg)
 
@@ -696,7 +697,7 @@ class Server(object):
         try:
             pid = os.fork()
             if pid > 0:
-                self.print_info("PID: %d" % pid)
+                log.info("PID: %d" % pid)
                 sys.exit(0)
         except OSError:
             sys.exit(1)
@@ -730,19 +731,6 @@ class Server(object):
         else:
             return []
 
-    def print_info(self, msg):
-        if self.verbose:
-            print msg
-            sys.stdout.flush()
-
-    def print_debug(self, msg):
-        if self.debug:
-            print msg
-            sys.stdout.flush()
-
-    def print_error(self, msg):
-        sys.stderr.write("%s\n" % msg)
-
     def client_changed_nickname(self, client, oldnickname):
         if oldnickname:
             del self.nicknames[irc_lower(oldnickname)]
@@ -774,12 +762,12 @@ class Server(object):
             try:
                 s.bind(("", port))
             except socket.error, x:
-                self.print_error("Could not bind port %s: %s." % (port, x))
+                log.error("Could not bind port %s: %s." % (port, x))
                 sys.exit(1)
             s.listen(5)
             serversockets.append(s)
             del s
-            self.print_info("Listening on port %d." % port)
+            log.info("Listening on port %d." % port)
         last_aliveness_check = time.time()
         while True:
             (iwtd, owtd, ewtd) = select.select(
@@ -794,8 +782,7 @@ class Server(object):
                 else:
                     (conn, addr) = x.accept()
                     self.clients[conn] = Client(self, conn)
-                    self.print_info("Accepted connection from %s:%s." % (
-                        addr[0], addr[1]))
+                    log.info("Accepted connection from %s:%s." % (addr[0], addr[1]))
             for x in owtd:
                 if x in self.clients: # client may have been disconnected
                     self.clients[x].socket_writable_notification()
@@ -870,7 +857,7 @@ def main(argv):
     try:
         server.start()
     except KeyboardInterrupt:
-        server.print_error("Interrupted.")
+        log.error("Interrupted.")
 
 
 main(sys.argv)

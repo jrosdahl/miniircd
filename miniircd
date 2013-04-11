@@ -46,6 +46,7 @@ class Channel(object):
         self.members = set()
         self._topic = ""
         self._key = None
+        self.history = []
         if self.server.statedir:
             self._state_path = "%s/%s" % (
                 self.server.statedir,
@@ -268,19 +269,32 @@ class Client(object):
                 self.channels[irc_lower(channelname)] = channel
                 self.message_channel(channel, "JOIN", channelname, True)
                 self.channel_log(channel, "joined", meta=True)
+
+                
                 if channel.topic:
                     self.reply("332 %s %s :%s"
                                % (self.nickname, channel.name, channel.topic))
                 else:
                     self.reply("331 %s %s :No topic is set"
                                % (self.nickname, channel.name))
-                self.reply("353 %s = %s :%s"
+                self.reply("353 %s = %s :%s S"
                            % (self.nickname,
                               channelname,
                               " ".join(sorted(x.nickname
                                               for x in channel.members))))
                 self.reply("366 %s %s :End of NAMES list"
                            % (self.nickname, channelname))
+                curdate = None
+                for timestamp,line in channel.history:
+                    local = time.localtime(timestamp)
+                    date = time.strftime("%y-%m-%d",local)
+                    t = time.strftime("%H:%M", local)
+                    if date != curdate:
+                        curdate = date
+                        self.message(":S!S@S PRIVMSG %s :Day changed to %s"%(channel.name,date))
+                    line = ":S!S@S PRIVMSG %s :%s %s" % (channel.name,t,line)
+                    print("Sending",line)
+                    self.message(line)
 
         def list_handler():
             if len(arguments) < 1:
@@ -594,6 +608,17 @@ class Client(object):
 
     def message_channel(self, channel, command, message, include_self=False):
         line = ":%s %s %s" % (self.prefix, command, message)
+        if command == "PRIVMSG":
+            print("MSG",message)
+            print("FIXED",":".join(message.split(":")[1:]).strip())
+            print("Saving history")
+            print("Line",line)
+            channel.history.append((time.time(),"<{nick}> {msg}".format(
+                nick = self.nickname,
+                msg = ":".join(message.split(":")[1:]).strip())))
+            if len(channel.history) > 200:
+                channel.history.pop(0)
+        
         for client in channel.members:
             if client != self or include_self:
                 client.message(line)

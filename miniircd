@@ -18,14 +18,21 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-# Joel Rosdahl <joel@rosdahl.net>
+# Original code by Joel Rosdahl <joel@rosdahl.net>
+#
+# LUSERS support by Alex Wright (https://github.com/alexwright)
+# AWAY support by Bui (https://github.com/bui)
+# Offline message/channel history support by Matti Eiden (https://github.com/voneiden)
+# SSL/TLS support by Rui Carmo (https://github.com/rcarmo)
+#
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 import os
 import re
 import select
 import socket
+import ssl
 import string
 import sys
 import tempfile
@@ -668,12 +675,23 @@ class Client(object):
             self.reply("422 %s :MOTD File is missing" % self.nickname)
 
 
+class SSLClient(Client):
+    def __init__(self, server, socket):
+        wrapper = ssl.wrap_socket(socket,
+            server_side = True,
+            certfile    = server.keypair,
+            keyfile     = server.keypair,
+            ssl_version = ssl.PROTOCOL_TLSv1)
+        Client.__init__(self, server, wrapper)
+
+
 class Server(object):
     def __init__(self, options):
         self.ports = options.ports
         self.password = options.password
         self.motdfile = options.motd
         self.verbose = options.verbose
+        self.keypair = options.keypair
         self.debug = options.debug
         self.logdir = options.logdir
         self.statedir = options.statedir
@@ -781,7 +799,12 @@ class Server(object):
                     self.clients[x].socket_readable_notification()
                 else:
                     (conn, addr) = x.accept()
-                    self.clients[conn] = Client(self, conn)
+                    if self.keypair:
+                        client = SSLClient(self, conn)
+                        conn = client.socket
+                        self.clients[conn] = client
+                    else:
+                        self.clients[conn] = Client(self, conn)
                     log.info("Accepted connection from %s:%s." % (addr[0], addr[1]))
             for x in owtd:
                 if x in self.clients: # client may have been disconnected
@@ -840,6 +863,10 @@ def main(argv):
         "--verbose",
         action="store_true",
         help="be verbose (print some progress messages to stdout)")
+    op.add_option(
+        "--keypair",
+        metavar="cert.pem",
+        help="SSL certificate and key stored together in PEM format")
     op.set_defaults(ports="6667")
     (options, args) = op.parse_args(argv[1:])
     if options.debug:

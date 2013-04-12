@@ -26,7 +26,7 @@
 # SSL/TLS support by Rui Carmo (https://github.com/rcarmo)
 #
 
-VERSION = "0.5"
+VERSION = "0.5-rcarmo"
 
 import os
 import re
@@ -681,7 +681,7 @@ class SSLClient(Client):
             server_side = True,
             certfile    = server.keypair,
             keyfile     = server.keypair,
-            ssl_version = ssl.PROTOCOL_TLSv1)
+            ssl_version = ssl.PROTOCOL_SSLv23)
         Client.__init__(self, server, wrapper)
 
 
@@ -800,9 +800,13 @@ class Server(object):
                 else:
                     (conn, addr) = x.accept()
                     if self.keypair:
-                        client = SSLClient(self, conn)
-                        conn = client.socket
-                        self.clients[conn] = client
+                        try:
+                            client = SSLClient(self, conn)
+                            conn = client.socket
+                            self.clients[conn] = client
+                        except ssl.SSLError, e:
+                            log.error("SSL error: %s" % e)
+                            conn.close()
                     else:
                         self.clients[conn] = Client(self, conn)
                     log.info("Accepted connection from %s:%s." % (addr[0], addr[1]))

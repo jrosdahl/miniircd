@@ -18,21 +18,33 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-# Joel Rosdahl <joel@rosdahl.net>
+# Original code by Joel Rosdahl <joel@rosdahl.net>
+#
+# LUSERS support by Alex Wright (https://github.com/alexwright)
+# AWAY support by Bui (https://github.com/bui)
+# Offline message/channel history support by Matti Eiden (https://github.com/voneiden)
+# SSL/TLS support by Rui Carmo (https://github.com/rcarmo)
+#
 
-VERSION = "0.4"
+VERSION = "0.5-rcarmo"
 
 import os
 import re
 import select
 import socket
+import ssl
 import string
 import sys
 import tempfile
 import time
+import logging
 from datetime import datetime
 from optparse import OptionParser
 
+
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler())
 
 def create_directory(path):
     if not os.path.isdir(path):
@@ -46,6 +58,7 @@ class Channel(object):
         self.members = set()
         self._topic = ""
         self._key = None
+        self.history = []
         if self.server.statedir:
             self._state_path = "%s/%s" % (
                 self.server.statedir,
@@ -114,6 +127,7 @@ class Client(object):
         self.nickname = None
         self.user = None
         self.realname = None
+        self.away = False
         (self.host, self.port) = socket.getpeername()
         self.__timestamp = time.time()
         self.__readbuffer = ""
@@ -218,7 +232,12 @@ class Client(object):
 
     def __command_handler(self, command, arguments):
         def away_handler():
-            pass
+            if not arguments:
+                self.away = False
+                self.reply('305 %s :You are no longer marked as being away' % self.nickname)
+            else:
+                self.away = arguments[0]
+                self.reply('306 %s :You have been marked as being away' % self.nickname)
 
         def ison_handler():
             if len(arguments) < 1:
@@ -261,6 +280,8 @@ class Client(object):
                 self.channels[irc_lower(channelname)] = channel
                 self.message_channel(channel, "JOIN", channelname, True)
                 self.channel_log(channel, "joined", meta=True)
+
+                
                 if channel.topic:
                     self.reply("332 %s %s :%s"
                                % (self.nickname, channel.name, channel.topic))
@@ -274,6 +295,17 @@ class Client(object):
                                               for x in channel.members))))
                 self.reply("366 %s %s :End of NAMES list"
                            % (self.nickname, channelname))
+                curdate = None
+                for timestamp,line in channel.history:
+                    local = time.localtime(timestamp)
+                    date = time.strftime("%y-%m-%d",local)
+                    t = time.strftime("%H:%M", local)
+                    if date != curdate:
+                        curdate = date
+                        self.message(":_!_@_ PRIVMSG %s :Day changed to %s"%(channel.name,date))
+                    line = ":_!_@_ PRIVMSG %s :%s %s" % (channel.name,t,line)
+                    print("Sending",line)
+                    self.message(line)
 
         def list_handler():
             if len(arguments) < 1:
@@ -389,6 +421,8 @@ class Client(object):
             message = arguments[1]
             client = server.get_client(targetname)
             if client:
+                if client.away:
+                    self.reply('301 %s %s :%s' % (self.nickname, client.nickname, client.away))
                 client.message(":%s %s %s :%s"
                                % (self.prefix, command, targetname, message))
             elif server.has_channel(targetname):
@@ -499,9 +533,13 @@ class Client(object):
                 self.reply("312 %s %s %s :%s"
                            % (self.nickname, user.nickname, server.name,
                               server.name))
-                self.reply("319 %s %s :%s"
-                           % (self.nickname, user.nickname,
-                              " ".join(user.channels)))
+                if user.away != False:
+                    self.reply('301 %s %s :%s'
+                               % (self.nickname, user.nickname, user.away))
+                if len(user.channels) != 0:
+                    self.reply("319 %s %s :%s"
+                               % (self.nickname, user.nickname,
+                                  " ".join(user.channels)))
                 self.reply("318 %s %s :End of WHOIS list"
                            % (self.nickname, user.nickname))
             else:
@@ -538,8 +576,7 @@ class Client(object):
     def socket_readable_notification(self):
         try:
             data = self.socket.recv(2 ** 10)
-            self.server.print_debug(
-                "[%s:%d] -> %r" % (self.host, self.port, data))
+            log.debug("[%s:%d] -> %r" % (self.host, self.port, data)) 
             quitmsg = "EOT"
         except socket.error, x:
             data = ""
@@ -550,23 +587,20 @@ class Client(object):
             self.__timestamp = time.time()
             self.__sent_ping = False
         else:
-            self.disconnect(quitmsg)
+            self.__timestamp = time.time()
+            #self.disconnect(quitmsg)
 
     def socket_writable_notification(self):
         try:
             sent = self.socket.send(self.__writebuffer)
-            self.server.print_debug(
-                "[%s:%d] <- %r" % (
-                    self.host, self.port, self.__writebuffer[:sent]))
+            log.debug("[%s:%d] <- %r" % (self.host, self.port, self.__writebuffer[:sent]))
             self.__writebuffer = self.__writebuffer[sent:]
         except socket.error, x:
             self.disconnect(x)
 
     def disconnect(self, quitmsg):
         self.message("ERROR :%s" % quitmsg)
-        self.server.print_info(
-            "Disconnected connection from %s:%s (%s)." % (
-                self.host, self.port, quitmsg))
+        log.info("Disconnected connection from %s:%s (%s)." % (self.host, self.port, quitmsg))
         self.socket.close()
         self.server.remove_client(self, quitmsg)
 
@@ -585,6 +619,17 @@ class Client(object):
 
     def message_channel(self, channel, command, message, include_self=False):
         line = ":%s %s %s" % (self.prefix, command, message)
+        if command == "PRIVMSG":
+            print("MSG",message)
+            print("FIXED",":".join(message.split(":")[1:]).strip())
+            print("Saving history")
+            print("Line",line)
+            channel.history.append((time.time(),"<{nick}> {msg}".format(
+                nick = self.nickname,
+                msg = ":".join(message.split(":")[1:]).strip())))
+            if len(channel.history) > 200:
+                channel.history.pop(0)
+        
         for client in channel.members:
             if client != self or include_self:
                 client.message(line)
@@ -630,12 +675,23 @@ class Client(object):
             self.reply("422 %s :MOTD File is missing" % self.nickname)
 
 
+class SSLClient(Client):
+    def __init__(self, server, socket):
+        wrapper = ssl.wrap_socket(socket,
+            server_side = True,
+            certfile    = server.keypair,
+            keyfile     = server.keypair,
+            ssl_version = ssl.PROTOCOL_SSLv23)
+        Client.__init__(self, server, wrapper)
+
+
 class Server(object):
     def __init__(self, options):
         self.ports = options.ports
         self.password = options.password
         self.motdfile = options.motd
         self.verbose = options.verbose
+        self.keypair = options.keypair
         self.debug = options.debug
         self.logdir = options.logdir
         self.statedir = options.statedir
@@ -659,7 +715,7 @@ class Server(object):
         try:
             pid = os.fork()
             if pid > 0:
-                self.print_info("PID: %d" % pid)
+                log.info("PID: %d" % pid)
                 sys.exit(0)
         except OSError:
             sys.exit(1)
@@ -693,19 +749,6 @@ class Server(object):
         else:
             return []
 
-    def print_info(self, msg):
-        if self.verbose:
-            print msg
-            sys.stdout.flush()
-
-    def print_debug(self, msg):
-        if self.debug:
-            print msg
-            sys.stdout.flush()
-
-    def print_error(self, msg):
-        sys.stderr.write("%s\n" % msg)
-
     def client_changed_nickname(self, client, oldnickname):
         if oldnickname:
             del self.nicknames[irc_lower(oldnickname)]
@@ -737,12 +780,12 @@ class Server(object):
             try:
                 s.bind(("", port))
             except socket.error, x:
-                self.print_error("Could not bind port %s: %s." % (port, x))
+                log.error("Could not bind port %s: %s." % (port, x))
                 sys.exit(1)
             s.listen(5)
             serversockets.append(s)
             del s
-            self.print_info("Listening on port %d." % port)
+            log.info("Listening on port %d." % port)
         last_aliveness_check = time.time()
         while True:
             (iwtd, owtd, ewtd) = select.select(
@@ -756,9 +799,17 @@ class Server(object):
                     self.clients[x].socket_readable_notification()
                 else:
                     (conn, addr) = x.accept()
-                    self.clients[conn] = Client(self, conn)
-                    self.print_info("Accepted connection from %s:%s." % (
-                        addr[0], addr[1]))
+                    if self.keypair:
+                        try:
+                            client = SSLClient(self, conn)
+                            conn = client.socket
+                            self.clients[conn] = client
+                        except ssl.SSLError, e:
+                            log.error("SSL error: %s" % e)
+                            conn.close()
+                    else:
+                        self.clients[conn] = Client(self, conn)
+                    log.info("Accepted connection from %s:%s." % (addr[0], addr[1]))
             for x in owtd:
                 if x in self.clients: # client may have been disconnected
                     self.clients[x].socket_writable_notification()
@@ -816,6 +867,10 @@ def main(argv):
         "--verbose",
         action="store_true",
         help="be verbose (print some progress messages to stdout)")
+    op.add_option(
+        "--keypair",
+        metavar="cert.pem",
+        help="SSL certificate and key stored together in PEM format")
     op.set_defaults(ports="6667")
     (options, args) = op.parse_args(argv[1:])
     if options.debug:
@@ -833,7 +888,7 @@ def main(argv):
     try:
         server.start()
     except KeyboardInterrupt:
-        server.print_error("Interrupted.")
+        log.error("Interrupted.")
 
 
 main(sys.argv)

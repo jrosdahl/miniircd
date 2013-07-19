@@ -795,16 +795,18 @@ class Server(object):
                     self.clients[x].socket_readable_notification()
                 else:
                     (conn, addr) = x.accept()
+                    conn_accpeted = True
                     try:
                         client = Client(self, conn)
                         conn = client.socket
                         self.clients[conn] = client
                     except ssl.SSLError, e:
+                        conn_accepted = False
                         self.print_error("SSL ERROR: %s" % e)
                         conn.close()
-                        sys.exit(0)
-                    self.print_info("Accepted connection from %s:%s." % (
-                        addr[0], addr[1]))
+                    if conn_accepted:
+                        self.print_info("Accepted connection from %s:%s." % (
+                            addr[0], addr[1]))
             for x in owtd:
                 if x in self.clients: # client may have been disconnected
                     self.clients[x].socket_writable_notification()

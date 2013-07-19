@@ -16,6 +16,7 @@ Features
 * No configuration.
 * No ident lookup (so that people behind firewalls that filter the ident port
   without sending NACK can connect without long timeouts).
+* (Optional) SSL encrypted client-to-server communication
 
 Limitations
 -----------
@@ -31,7 +32,7 @@ Limitations
 Requirements
 ------------
 
-Python 2.5 or newer. Get it at http://www.python.org.
+Python 2.6 or newer. Get it at http://www.python.org.
 
 Installation
 ------------

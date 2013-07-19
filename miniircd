@@ -18,7 +18,15 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-# Joel Rosdahl <joel@rosdahl.net>
+# Originallly authored by Joel Rosdahl <joel@rosdahl.net>
+#
+# Contributors:
+#   - Matt Behrens (github.com/zigg)
+#   - Alex Wright (github.com/alexwright)
+#   - Bui (github.com/bui)
+#   - Rui Carmo (github.com/rcarmo)
+#   - Joel Kleier (github.com/zombified)
+#
 
 VERSION = "0.4"
 
@@ -26,6 +34,7 @@ import os
 import re
 import select
 import socket
+import ssl
 import string
 import sys
 import tempfile
@@ -221,10 +230,12 @@ class Client(object):
         def away_handler():
             if not arguments:
                 self.away = False
-                self.reply('305 %s :You are no longer marked as being away' % self.nickname)
+                self.reply("305 %s :You are no longer marked as being away"
+                           % self.nickname)
             else:
                 self.away = arguments[0]
-                self.reply('306 %s :You have been marked as being away' % self.nickname)
+                self.reply("306 %s :You have been marked as being away"
+                           % self.nickname)
 
         def ison_handler():
             if len(arguments) < 1:
@@ -396,7 +407,8 @@ class Client(object):
             client = server.get_client(targetname)
             if client:
                 if client.away:
-                    self.reply('301 %s %s :%s' % (self.nickname, client.nickname, client.away))
+                    self.reply("301 %s %s :%s"
+                               % (self.nickname, client.nickname, client.away))
                 client.message(":%s %s %s :%s"
                                % (self.prefix, command, targetname, message))
             elif server.has_channel(targetname):
@@ -507,8 +519,8 @@ class Client(object):
                 self.reply("312 %s %s %s :%s"
                            % (self.nickname, user.nickname, server.name,
                               server.name))
-                if user.away != False:
-                    self.reply('301 %s %s :%s'
+                if user.away:
+                    self.reply("301 %s %s :%s"
                                % (self.nickname, user.nickname, user.away))
                 if len(user.channels) != 0:
                     self.reply("319 %s %s :%s"
@@ -642,6 +654,17 @@ class Client(object):
             self.reply("422 %s :MOTD File is missing" % self.nickname)
 
 
+class SSLClient(Client):
+    def __init__(self, server, socket):
+        wrapper = ssl.wrap_socket(
+                   socket,
+                   server_side = True,
+                   certfile    = server.ssl_pem_file,
+                   keyfile     = server.ssl_pem_file,
+                   ssl_version = ssl.PROTOCOL_SSLv23)
+        Client.__init__(self, server, wrapper)
+
+
 class Server(object):
     def __init__(self, options):
         self.ports = options.ports
@@ -650,6 +673,7 @@ class Server(object):
         self.verbose = options.verbose
         self.debug = options.debug
         self.logdir = options.logdir
+        self.ssl_pem_file = options.ssl_pem_file
         self.statedir = options.statedir
         self.name = socket.getfqdn()[:63]  # Server name limit from the RFC.
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
@@ -768,7 +792,17 @@ class Server(object):
                     self.clients[x].socket_readable_notification()
                 else:
                     (conn, addr) = x.accept()
-                    self.clients[conn] = Client(self, conn)
+                    if self.ssl_pem_file:
+                        try:
+                            client = SSLClient(self, conn)
+                            conn = client.socket
+                            self.clients[conn] = client
+                        except ssl.SSLError, e:
+                            self.print_error("SSL ERROR: %s" % e)
+                            conn.close()
+                            sys.exit(0)
+                    else:
+                        self.clients[conn] = Client(self, conn)
                     self.print_info("Accepted connection from %s:%s." % (
                         addr[0], addr[1]))
             for x in owtd:
@@ -820,6 +854,12 @@ def main(argv):
         metavar="X",
         help="listen to ports X (a list separated by comma or whitespace);"
              " default: 6667")
+    op.add_option(
+        "--ssl-pem-file",
+        metavar="cert.pem",
+        help="Enables client-to-server SSL support, and specifies the " \
+             "file containing the SSL certificate and key, stored in the " \
+             "PEM format")
     op.add_option(
         "--statedir",
         metavar="X",

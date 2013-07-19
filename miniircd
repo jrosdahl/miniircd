@@ -840,7 +840,8 @@ def main(argv):
     op.add_option(
         "--logdir",
         metavar="X",
-        help="store channel log in directory X")
+        help="store channel log in directory X, if no directory is specified" \
+             "no channel logging takes place")
     op.add_option(
         "--motd",
         metavar="X",

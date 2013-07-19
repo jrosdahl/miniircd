@@ -795,7 +795,7 @@ class Server(object):
                     self.clients[x].socket_readable_notification()
                 else:
                     (conn, addr) = x.accept()
-                    conn_accpeted = True
+                    conn_accepted = True
                     try:
                         client = Client(self, conn)
                         conn = client.socket

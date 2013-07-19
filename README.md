@@ -47,7 +47,16 @@ License
 
 GNU General Public License version 2 or later.
 
-Author
-------
+Authorship
+----------
 
-Joel Rosdahl <joel@rosdahl.net>
+Authored by Joel Rosdahl <joel@rosdahl.net>
+
+Contributors:
+
+  * Matt Behrens (github.com/zigg)
+  * Alex Wright (github.com/alexwright)
+  * Bui (github.com/bui)
+  * Rui Carmo (github.com/rcarmo)
+  * Joel Kleier (github.com/zombified)
+

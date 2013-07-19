@@ -34,13 +34,18 @@ import os
 import re
 import select
 import socket
-import ssl
 import string
 import sys
 import tempfile
 import time
 from datetime import datetime
 from optparse import OptionParser
+
+try:
+    import ssl
+    ssl_available = True
+except ImportError:
+    ssl_available = False
 
 
 def create_directory(path):
@@ -117,8 +122,18 @@ class Client(object):
         r"^[&#+!][^\x00\x07\x0a\x0d ,:]{0,50}$")
 
     def __init__(self, server, socket):
+        global ssl_available
+
         self.server = server
-        self.socket = socket
+        if ssl_available and server.ssl_pem_file:
+            self.socket = ssl.wrap_socket(
+                       socket,
+                       server_side = True,
+                       certfile    = server.ssl_pem_file,
+                       keyfile     = server.ssl_pem_file,
+                       ssl_version = ssl.PROTOCOL_SSLv23)
+        else:
+            self.socket = socket
         self.channels = {}  # irc_lower(Channel name) --> Channel
         self.nickname = None
         self.user = None
@@ -653,18 +668,6 @@ class Client(object):
         else:
             self.reply("422 %s :MOTD File is missing" % self.nickname)
 
-
-class SSLClient(Client):
-    def __init__(self, server, socket):
-        wrapper = ssl.wrap_socket(
-                   socket,
-                   server_side = True,
-                   certfile    = server.ssl_pem_file,
-                   keyfile     = server.ssl_pem_file,
-                   ssl_version = ssl.PROTOCOL_SSLv23)
-        Client.__init__(self, server, wrapper)
-
-
 class Server(object):
     def __init__(self, options):
         self.ports = options.ports
@@ -792,17 +795,14 @@ class Server(object):
                     self.clients[x].socket_readable_notification()
                 else:
                     (conn, addr) = x.accept()
-                    if self.ssl_pem_file:
-                        try:
-                            client = SSLClient(self, conn)
-                            conn = client.socket
-                            self.clients[conn] = client
-                        except ssl.SSLError, e:
-                            self.print_error("SSL ERROR: %s" % e)
-                            conn.close()
-                            sys.exit(0)
-                    else:
-                        self.clients[conn] = Client(self, conn)
+                    try:
+                        client = Client(self, conn)
+                        conn = client.socket
+                        self.clients[conn] = client
+                    except ssl.SSLError, e:
+                        self.print_error("SSL ERROR: %s" % e)
+                        conn.close()
+                        sys.exit(0)
                     self.print_info("Accepted connection from %s:%s." % (
                         addr[0], addr[1]))
             for x in owtd:
@@ -872,6 +872,9 @@ def main(argv):
     (options, args) = op.parse_args(argv[1:])
     if options.debug:
         options.verbose = True
+    #if options.ssl_pem_file:
+    #    global ssl
+    #    ssl = __import__('ssl')
     ports = []
     for port in re.split(r"[,\s]+", options.ports):
         try:

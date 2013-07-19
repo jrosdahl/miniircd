@@ -875,9 +875,6 @@ def main(argv):
     (options, args) = op.parse_args(argv[1:])
     if options.debug:
         options.verbose = True
-    #if options.ssl_pem_file:
-    #    global ssl
-    #    ssl = __import__('ssl')
     ports = []
     for port in re.split(r"[,\s]+", options.ports):
         try:

@@ -16,8 +16,6 @@ class Client(object):
         r"^[&#+!][^\x00\x07\x0a\x0d ,:]{0,50}$")
 
     def __init__(self, server, socket):
-        global ssl_available
-
         self.server = server
         self.socket = socket
         self.channels = {}  # irc_lower(Channel name) --> Channel

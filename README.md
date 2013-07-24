@@ -40,6 +40,27 @@ Installation
 None. Just run "./miniircd --help" (or "python miniircd --help") to get some
 help.
 
+Configuration
+-------------
+
+None, by default. See command line options with "./miniircd --help".
+
+You can also put the command line options into a configuration file like so:
+
+*miniircd.conf*:
+
+    --debug
+    --ports
+    6667,6668,6669
+    --ssl-pem-file
+    /path/to/cert.pem
+
+and then call the script like so:
+
+    ./miniircd @miniircd.conf
+
+just place an '@' before the filename.
+
 License
 -------
 

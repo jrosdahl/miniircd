@@ -16,6 +16,7 @@ Features
 * No configuration.
 * No ident lookup (so that people behind firewalls that filter the ident port
   without sending NACK can connect without long timeouts).
+* (Optional) SSL encrypted client-to-server communication
 
 Limitations
 -----------
@@ -31,7 +32,7 @@ Limitations
 Requirements
 ------------
 
-Python 2.5 or newer. Get it at http://www.python.org.
+Python 2.7 or newer. Get it at http://www.python.org.
 
 Installation
 ------------
@@ -39,12 +40,42 @@ Installation
 None. Just run "./miniircd --help" (or "python miniircd --help") to get some
 help.
 
+Configuration
+-------------
+
+None, by default. See command line options with "./miniircd --help".
+
+You can also put the command line options into a configuration file like so:
+
+*miniircd.conf*:
+
+    --debug
+    --ports
+    6667,6668,6669
+    --ssl-pem-file
+    /path/to/cert.pem
+
+and then call the script like so:
+
+    ./miniircd @miniircd.conf
+
+just place an '@' before the filename.
+
 License
 -------
 
 GNU General Public License version 2 or later.
 
-Author
-------
+Authorship
+----------
 
-Joel Rosdahl <joel@rosdahl.net>
+Authored by Joel Rosdahl <joel@rosdahl.net>
+
+Contributors:
+
+  * Matt Behrens (github.com/zigg)
+  * Alex Wright (github.com/alexwright)
+  * Bui (github.com/bui)
+  * Rui Carmo (github.com/rcarmo)
+  * Joel Kleier (github.com/zombified)
+

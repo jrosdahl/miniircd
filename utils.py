@@ -1,4 +1,6 @@
+import argparse
 import os
+import re
 import string
 
 
@@ -19,3 +21,15 @@ def create_directory(path):
 def irc_lower(s):
     return string.translate(s, _ircstring_translation)
 
+
+class PortListType(object):
+    def __call__(self, ports):
+        portlist = []
+        for port in re.split(r"[,]+", ports):
+            try:
+                portlist.append(int(port))
+            except ValueError:
+                raise argparse.ArgumentTypeError(
+                        "bad port value, must be a valid port number, or a "
+                        "list of valid port numbers separated by a comma")
+        return portlist

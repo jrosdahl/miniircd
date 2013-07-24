@@ -28,69 +28,58 @@
 #   - Joel Kleier (github.com/zombified)
 #
 
-from optparse import OptionParser
-import re
+import argparse
 import sys
 
 from server import Server
-from utils import VERSION
+from utils import VERSION, PortListType
 
 
 def main(argv):
-    op = OptionParser(
-        version=VERSION,
-        description="miniircd is a small and limited IRC server.")
-    op.add_option(
-        "-d", "--daemon",
-        action="store_true",
-        help="fork and become a daemon")
-    op.add_option(
-        "--debug",
-        action="store_true",
+    parser = argparse.ArgumentParser(
+                prog='MiniIRCd',
+                fromfile_prefix_chars='@',
+                description="A small, feature light IRC server.")
+
+    parser.add_argument(
+        '-d', '--daemon', action='store_true', default=False,
+        help="Run the server in daemon mode")
+    parser.add_argument(
+        "--debug", action='store_true', default=False,
         help="print debug messages to stdout")
-    op.add_option(
-        "--logdir",
-        metavar="X",
+    parser.add_argument(
+        "--logdir", metavar='/path/to/log/direcotory/', default=None,
         help="store channel log in directory X, if no directory is specified" \
              "no channel logging takes place")
-    op.add_option(
-        "--motd",
-        metavar="X",
+    parser.add_argument(
+        "--motd", metavar='file.txt', default=None,
         help="display file X as message of the day")
-    op.add_option(
-        "-p", "--password",
-        metavar="X",
+    parser.add_argument(
+        "-p", "--password", metavar='password', default=None,
         help="require connection password X; default: no password")
-    op.add_option(
-        "--ports",
-        metavar="X",
+    parser.add_argument(
+        "--ports", metavar='port1[,port2,...]', default=[6667],
+        type=PortListType(),
         help="listen to ports X (a list separated by comma or whitespace);"
              " default: 6667")
-    op.add_option(
-        "--ssl-pem-file",
-        metavar="cert.pem",
+    parser.add_argument(
+        "--ssl-pem-file", metavar='cert.pem', default=None,
         help="Enables client-to-server SSL support, and specifies the " \
              "file containing the SSL certificate and key, stored in the " \
              "PEM format")
-    op.add_option(
-        "--statedir",
-        metavar="X",
+    parser.add_argument(
+        "--statedir",  metavar='/path/to/state/directory/', default=None,
         help="save persistent channel state (topic, key) in directory X")
-    op.add_option(
-        "--verbose",
-        action="store_true",
+    parser.add_argument(
+        "--verbose", action="store_true", default=False,
         help="be verbose (print some progress messages to stdout)")
-    op.set_defaults(ports="6667")
-    (options, args) = op.parse_args(argv[1:])
+    parser.add_argument(
+        "--version", action="version", version="%(prog)s "+VERSION)
+
+    options = parser.parse_args()
+
     if options.debug:
         options.verbose = True
-    ports = []
-    for port in re.split(r"[,\s]+", options.ports):
-        try:
-            ports.append(int(port))
-        except ValueError:
-            op.error("bad port: %r" % port)
-    options.ports = ports
     server = Server(options)
     if options.daemon:
         server.daemonize()

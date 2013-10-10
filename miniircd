@@ -634,6 +634,7 @@ class Server(object):
     def __init__(self, options):
         self.ports = options.ports
         self.password = options.password
+        self.ssl_pem_file = options.ssl_pem_file
         self.motdfile = options.motd
         self.verbose = options.verbose
         self.debug = options.debug
@@ -756,6 +757,15 @@ class Server(object):
                     self.clients[x].socket_readable_notification()
                 else:
                     (conn, addr) = x.accept()
+                    if self.ssl_pem_file:
+                        try:
+                            conn = ssl.wrap_socket(conn,
+                                 server_side=True,
+                                 certfile=self.ssl_pem_file,
+                                 keyfile=self.ssl_pem_file)
+                        except ssl.SSLError as e:
+                            self.print_error('SSL error: %s\n' % (addr, e))
+                            continue
                     self.clients[conn] = Client(self, conn)
                     self.print_info("Accepted connection from %s:%s." % (
                         addr[0], addr[1]))
@@ -800,6 +810,10 @@ def main(argv):
         metavar="X",
         help="display file X as message of the day")
     op.add_option(
+        "-s", "--ssl-pem-file",
+        metavar="FILE",
+        help="enable SSL and use FILE as the .pem certificate+key")
+    op.add_option(
         "-p", "--password",
         metavar="X",
         help="require connection password X; default: no password")
@@ -807,7 +821,7 @@ def main(argv):
         "--ports",
         metavar="X",
         help="listen to ports X (a list separated by comma or whitespace);"
-             " default: 6667")
+             " default: 6667 or 6697 if SSL is enabled")
     op.add_option(
         "--statedir",
         metavar="X",
@@ -816,10 +830,18 @@ def main(argv):
         "--verbose",
         action="store_true",
         help="be verbose (print some progress messages to stdout)")
-    op.set_defaults(ports="6667")
     (options, args) = op.parse_args(argv[1:])
     if options.debug:
         options.verbose = True
+    if options.ssl_pem_file is not None:
+        # Only import ssl when needed
+        global ssl
+        import ssl
+    if options.ports is None:
+        if options.ssl_pem_file is None:
+            options.ports = "6667"
+        else:
+            options.ports = "6697"
     ports = []
     for port in re.split(r"[,\s]+", options.ports):
         try:

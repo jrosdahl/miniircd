@@ -13,6 +13,7 @@ Features
 
 * Knows about the basic IRC protocol and commands.
 * Easy installation.
+* Basic SSL support.
 * No configuration.
 * No ident lookup (so that people behind firewalls that filter the ident port
   without sending NACK can connect without long timeouts).
@@ -31,7 +32,8 @@ Limitations
 Requirements
 ------------
 
-Python 2.5 or newer. Get it at http://www.python.org.
+Python 2.5 or newer, Python 2.6 or newer when SSL is used.
+Get it at http://www.python.org.
 
 Installation
 ------------

@@ -1,6 +1,7 @@
 Unreleased
 
   * Added support for the LUSERS command (from Alex Wright).
+  * Added basic SSL support (from Leandro Lucarella).
 
 0.4 2012-07-01
 

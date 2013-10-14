@@ -759,12 +759,15 @@ class Server(object):
                     (conn, addr) = x.accept()
                     if self.ssl_pem_file:
                         try:
-                            conn = ssl.wrap_socket(conn,
-                                 server_side=True,
-                                 certfile=self.ssl_pem_file,
-                                 keyfile=self.ssl_pem_file)
+                            conn = ssl.wrap_socket(
+                                conn,
+                                server_side=True,
+                                certfile=self.ssl_pem_file,
+                                keyfile=self.ssl_pem_file)
                         except ssl.SSLError as e:
-                            self.print_error('SSL error: %s\n' % (addr, e))
+                            self.print_error(
+                                "SSL error for connection from %s:%s: %s" % (
+                                    addr[0], addr[1], e))
                             continue
                     self.clients[conn] = Client(self, conn)
                     self.print_info("Accepted connection from %s:%s." % (

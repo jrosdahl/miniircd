@@ -46,7 +46,14 @@ License
 
 GNU General Public License version 2 or later.
 
-Author
-------
+Primary author
+--------------
 
 Joel Rosdahl <joel@rosdahl.net>
+
+Contributors
+------------
+
+Alex Wright
+Leandro Lucarella
+Matt Behrens

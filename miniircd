@@ -764,7 +764,7 @@ class Server(object):
                                  certfile=self.ssl_pem_file,
                                  keyfile=self.ssl_pem_file)
                         except ssl.SSLError as e:
-                            self.print_error('SSL error: %s\n' % (addr, e))
+                            self.print_error('SSL error: %s %s\n' % (addr, e))
                             continue
                     self.clients[conn] = Client(self, conn)
                     self.print_info("Accepted connection from %s:%s." % (

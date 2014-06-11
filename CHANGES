@@ -1,5 +1,5 @@
-Unreleased
 
+  * Added support for --chroot and -setuid (fork by rezrov)
   * Added support for the LUSERS command (from Alex Wright).
   * Added basic SSL support (from Leandro Lucarella).
 

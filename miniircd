@@ -32,7 +32,8 @@ import tempfile
 import time
 from datetime import datetime
 from optparse import OptionParser
-
+from pwd import getpwnam
+from grp import getgrnam
 
 def create_directory(path):
     if not os.path.isdir(path):
@@ -639,6 +640,8 @@ class Server(object):
         self.verbose = options.verbose
         self.debug = options.debug
         self.logdir = options.logdir
+        self.chroot = options.chroot
+        self.setuid = options.setuid
         self.statedir = options.statedir
         self.name = socket.getfqdn()[:63]  # Server name limit from the RFC.
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
@@ -744,6 +747,14 @@ class Server(object):
             serversockets.append(s)
             del s
             self.print_info("Listening on port %d." % port)
+        if self.chroot:
+            os.chdir(self.chroot)
+            os.chroot(self.chroot)
+            self.print_info("Changed root directory to %s" % self.chroot)
+        if self.setuid:
+            os.setresgid(self.setuid[1],self.setuid[1],self.setuid[1])
+            os.setresuid(self.setuid[0],self.setuid[0],self.setuid[0])
+            self.print_info("Setting uid:gid to %s:%s" % (self.setuid[0], self.setuid[1]))
         last_aliveness_check = time.time()
         while True:
             (iwtd, owtd, ewtd) = select.select(
@@ -833,6 +844,16 @@ def main(argv):
         "--verbose",
         action="store_true",
         help="be verbose (print some progress messages to stdout)")
+    if os.name == "posix":
+        op.add_option(
+            "--chroot",
+            metavar="X",
+            help="Change filesystem root to directory X after startup (requires root)")
+        op.add_option(
+            "--setuid",
+            metavar="U[:G]",
+            help="Change process user (and optionally group) after startup (requires root)")
+
     (options, args) = op.parse_args(argv[1:])
     if options.debug:
         options.verbose = True
@@ -845,6 +866,20 @@ def main(argv):
             options.ports = "6667"
         else:
             options.ports = "6697"
+    if options.chroot:
+        if os.getuid() != 0:
+            op.error("Must be root to use --chroot")
+    if options.setids:
+        if os.getuid() != 0:
+            op.error("Must be root to use --setuid")
+        match = re.findall(r"([a-z_][a-z0-9_-]*[\$]?)", options.setids)
+
+        if len(match) > 1:
+            options.setids = (int(getpwnam(match[0]).pw_uid),int(getgrnam(match[1]).gr_gid))
+        elif len(match) == 1:
+            options.setids = (int(getpwnam(match[0]).pw_uid),int(getpwnam(match[0]).pw_gid))
+        else:
+            op.error("Specify a user, or user and group separated by a semicolon, e.g. --setuid daemon, --setuid nobody:nobody")
     ports = []
     for port in re.split(r"[,\s]+", options.ports):
         try:

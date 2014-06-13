@@ -869,15 +869,15 @@ def main(argv):
     if options.chroot:
         if os.getuid() != 0:
             op.error("Must be root to use --chroot")
-    if options.setids:
+    if options.setuid:
         if os.getuid() != 0:
             op.error("Must be root to use --setuid")
-        match = re.findall(r"([a-z_][a-z0-9_-]*[\$]?)", options.setids)
+        match = re.findall(r"([a-z_][a-z0-9_-]*[\$]?)", options.setuid)
 
         if len(match) > 1:
-            options.setids = (int(getpwnam(match[0]).pw_uid),int(getgrnam(match[1]).gr_gid))
+            options.setuid = (int(getpwnam(match[0]).pw_uid),int(getgrnam(match[1]).gr_gid))
         elif len(match) == 1:
-            options.setids = (int(getpwnam(match[0]).pw_uid),int(getpwnam(match[0]).pw_gid))
+            options.setuid = (int(getpwnam(match[0]).pw_uid),int(getpwnam(match[0]).pw_gid))
         else:
             op.error("Specify a user, or user and group separated by a semicolon, e.g. --setuid daemon, --setuid nobody:nobody")
     ports = []

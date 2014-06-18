@@ -8,9 +8,6 @@ miniircd is a small and limited IRC server written in Python. Despite its size,
 it is a functional alternative to a full-blown ircd for private or internal
 use. Installation is simple; no configuration is required.
 
-This fork adds the ability to specify a chroot jail for the server process,
-as well as the ability to set the user/group of the process. (*nix OSes only)
-
 Features
 --------
 

@@ -32,8 +32,6 @@ import tempfile
 import time
 from datetime import datetime
 from optparse import OptionParser
-from pwd import getpwnam
-from grp import getgrnam
 
 def create_directory(path):
     if not os.path.isdir(path):
@@ -873,6 +871,8 @@ def main(argv):
         if os.getuid() != 0:
             op.error("Must be root to use --chroot")
     if options.setuid:
+        from pwd import getpwnam
+        from grp import getgrnam
         if os.getuid() != 0:
             op.error("Must be root to use --setuid")
         match = re.findall(r"([a-z_][a-z0-9_-]*\$?)", options.setuid)

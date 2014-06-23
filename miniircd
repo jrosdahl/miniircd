@@ -738,8 +738,8 @@ class Server(object):
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 s.bind(("", port))
-            except socket.error, x:
-                self.print_error("Could not bind port %s: %s." % (port, x))
+            except socket.error as e:
+                self.print_error("Could not bind port %s: %s." % (port, e))
                 sys.exit(1)
             s.listen(5)
             serversockets.append(s)
@@ -768,6 +768,7 @@ class Server(object):
                 else:
                     (conn, addr) = x.accept()
                     if self.ssl_pem_file:
+                        import ssl
                         try:
                             conn = ssl.wrap_socket(
                                 conn,
@@ -858,10 +859,6 @@ def main(argv):
     (options, args) = op.parse_args(argv[1:])
     if options.debug:
         options.verbose = True
-    if options.ssl_pem_file is not None:
-        # Only import ssl when needed
-        global ssl
-        import ssl
     if options.ports is None:
         if options.ssl_pem_file is None:
             options.ports = "6667"

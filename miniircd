@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # Hey, Emacs! This is -*-python-*-.
 #
-# Copyright (C) 2003, 2011-2013 Joel Rosdahl
+# Copyright (C) 2003-2014 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -752,9 +752,10 @@ class Server(object):
             os.chroot(self.chroot)
             self.print_info("Changed root directory to %s" % self.chroot)
         if self.setuid:
-            os.setresgid(self.setuid[1],self.setuid[1],self.setuid[1])
-            os.setresuid(self.setuid[0],self.setuid[0],self.setuid[0])
-            self.print_info("Setting uid:gid to %s:%s" % (self.setuid[0], self.setuid[1]))
+            os.setresgid(self.setuid[1], self.setuid[1], self.setuid[1])
+            os.setresuid(self.setuid[0], self.setuid[0], self.setuid[0])
+            self.print_info("Setting uid:gid to %s:%s"
+                            % (self.setuid[0], self.setuid[1]))
         last_aliveness_check = time.time()
         while True:
             (iwtd, owtd, ewtd) = select.select(
@@ -848,11 +849,13 @@ def main(argv):
         op.add_option(
             "--chroot",
             metavar="X",
-            help="Change filesystem root to directory X after startup (requires root)")
+            help="change filesystem root to directory X after startup"
+                 " (requires root)")
         op.add_option(
             "--setuid",
             metavar="U[:G]",
-            help="Change process user (and optionally group) after startup (requires root)")
+            help="change process user (and optionally group) after startup"
+                 " (requires root)")
 
     (options, args) = op.parse_args(argv[1:])
     if options.debug:
@@ -872,16 +875,21 @@ def main(argv):
     if options.setuid:
         if os.getuid() != 0:
             op.error("Must be root to use --setuid")
-        match = re.findall(r"([a-z_][a-z0-9_-]*[\$]?)", options.setuid)
-
+        match = re.findall(r"([a-z_][a-z0-9_-]*\$?)", options.setuid)
         if len(match) > 1:
-            options.setuid = (int(getpwnam(match[0]).pw_uid),int(getgrnam(match[1]).gr_gid))
+            options.setuid = (int(getpwnam(match[0]).pw_uid),
+                              int(getgrnam(match[1]).gr_gid))
         elif len(match) == 1:
-            options.setuid = (int(getpwnam(match[0]).pw_uid),int(getpwnam(match[0]).pw_gid))
+            options.setuid = (int(getpwnam(match[0]).pw_uid),
+                              int(getpwnam(match[0]).pw_gid))
         else:
-            op.error("Specify a user, or user and group separated by a semicolon, e.g. --setuid daemon, --setuid nobody:nobody")
+            op.error("Specify a user, or user and group separated by a colon,"
+                     " e.g. --setuid daemon, --setuid nobody:nobody")
     if (os.getuid() == 0 or os.getgid() == 0) and not options.setuid:
-        op.error("Running this service as root is not recommended. Use the --setuid option to switch to an unprivileged account after startup. If you really intend to run as root, use '--setuid root'.")
+        op.error("Running this service as root is not recommended. Use the"
+                 " --setuid option to switch to an unprivileged account after"
+                 " startup. If you really intend to run as root, use \"--setuid"
+                 " root\".")
 
     ports = []
     for port in re.split(r"[,\s]+", options.ports):
@@ -900,5 +908,3 @@ def main(argv):
 
 
 main(sys.argv)
-
-# ex:et:sw=4:ts=4

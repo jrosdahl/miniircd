@@ -1,7 +1,8 @@
+Unreleased
 
-  * Added support for --chroot and -setuid (fork by rezrov)
   * Added support for the LUSERS command (from Alex Wright).
   * Added basic SSL support (from Leandro Lucarella).
+  * Added support for --chroot and -setuid (from Ron Fritz).
 
 0.4 2012-07-01
 

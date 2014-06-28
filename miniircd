@@ -641,7 +641,13 @@ class Server(object):
         self.chroot = options.chroot
         self.setuid = options.setuid
         self.statedir = options.statedir
-        self.name = socket.getfqdn()[:63]  # Server name limit from the RFC.
+
+        if options.listen:
+            self.address = socket.gethostbyname(options.listen)
+        else:
+            self.address = ""
+        self.name = socket.getfqdn(self.address)[:63]  # Server name limit from the RFC.
+
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
         self.clients = {}  # Socket --> Client instance.
         self.nicknames = {}  # irc_lower(Nickname) --> Client instance.
@@ -737,7 +743,7 @@ class Server(object):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
-                s.bind(("", port))
+                s.bind((self.address, port))
             except socket.error as e:
                 self.print_error("Could not bind port %s: %s." % (port, e))
                 sys.exit(1)
@@ -815,6 +821,10 @@ def main(argv):
         "--debug",
         action="store_true",
         help="print debug messages to stdout")
+    op.add_option(
+        "--listen",
+        metavar = "X",
+        help = "listen on specific IP address")
     op.add_option(
         "--logdir",
         metavar="X",

@@ -883,7 +883,8 @@ def main(argv):
         from grp import getgrnam
         if os.getuid() != 0:
             op.error("Must be root to use --setuid")
-        match = re.findall(r"([a-z_][a-z0-9_-]*\$?)", options.setuid)
+        match = re.findall(r"([a-z_][a-z0-9_-]*\$?)", options.setuid,
+                           flags=re.IGNORECASE)
         if len(match) > 1:
             options.setuid = (int(getpwnam(match[0]).pw_uid),
                               int(getgrnam(match[1]).gr_gid))

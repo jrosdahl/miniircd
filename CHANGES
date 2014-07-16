@@ -1,8 +1,9 @@
 Unreleased
 
-  * Added support for the LUSERS command (from Alex Wright).
-  * Added basic SSL support (from Leandro Lucarella).
-  * Added support for --chroot and -setuid (from Ron Fritz).
+  * Added support for the LUSERS command (by Alex Wright).
+  * Added basic SSL support (by Leandro Lucarella).
+  * Added support for --chroot and -setuid (by Ron Fritz).
+  * Added --listen option to set address to bind to (by Martin Maney).
 
 0.4 2012-07-01
 

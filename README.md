@@ -103,5 +103,6 @@ Contributors
 
 Alex Wright
 Leandro Lucarella
+Martin Maney
 Matt Behrens
 Ron Fritz

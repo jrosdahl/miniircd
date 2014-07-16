@@ -646,7 +646,8 @@ class Server(object):
             self.address = socket.gethostbyname(options.listen)
         else:
             self.address = ""
-        self.name = socket.getfqdn(self.address)[:63]  # Server name limit from the RFC.
+        self.name = socket.getfqdn(self.address)[:63]  # Server name limit from
+                                                       # the RFC.
 
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
         self.clients = {}  # Socket --> Client instance.
@@ -823,8 +824,8 @@ def main(argv):
         help="print debug messages to stdout")
     op.add_option(
         "--listen",
-        metavar = "X",
-        help = "listen on specific IP address")
+        metavar="X",
+        help="listen on specific IP address X")
     op.add_option(
         "--logdir",
         metavar="X",

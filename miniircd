@@ -757,8 +757,8 @@ class Server(object):
             os.chroot(self.chroot)
             self.print_info("Changed root directory to %s" % self.chroot)
         if self.setuid:
-            os.setresgid(self.setuid[1], self.setuid[1], self.setuid[1])
-            os.setresuid(self.setuid[0], self.setuid[0], self.setuid[0])
+            os.setgid(self.setuid[1])
+            os.setuid(self.setuid[0])
             self.print_info("Setting uid:gid to %s:%s"
                             % (self.setuid[0], self.setuid[1]))
         last_aliveness_check = time.time()

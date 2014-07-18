@@ -872,17 +872,15 @@ def main(argv):
     if options.setuid:
         if os.getuid() != 0:
             op.error("Must be root to use --setuid")
-        match = re.findall(r"([a-z_][a-z0-9_-]*[\$]?)", options.setuid, flags=re.IGNORECASE)
-
-        if len(match) > 1:
-            options.setuid = (int(getpwnam(match[0]).pw_uid),int(getgrnam(match[1]).gr_gid))
-        elif len(match) == 1:
-            options.setuid = (int(getpwnam(match[0]).pw_uid),int(getpwnam(match[0]).pw_gid))
+        matches = options.setuid.split(":")
+        if len(matches) > 1:
+            options.setuid = (int(getpwnam(matches[0]).pw_uid),int(getgrnam(matches[1]).gr_gid))
+        elif len(matches) == 1:
+            options.setuid = (int(getpwnam(matches[0]).pw_uid),int(getpwnam(matches[0]).pw_gid))
         else:
             op.error("Specify a user, or user and group separated by a semicolon, e.g. --setuid daemon, --setuid nobody:nobody")
     if (os.getuid() == 0 or os.getgid() == 0) and not options.setuid:
         op.error("Running this service as root is not recommended. Use the --setuid option to switch to an unprivileged account after startup. If you really intend to run as root, use '--setuid root'.")
-
     ports = []
     for port in re.split(r"[,\s]+", options.ports):
         try:

@@ -1,0 +1,46 @@
+#!/bin/sh
+set -e
+
+cd `dirname $0`
+
+genchangelog()
+{
+        echo "$1 ($2) `lsb_release -sc`; urgency=low"
+        echo
+	prevtag=$(git describe --abbrev=0 HEAD^)
+        git log --date=short --format="  * %s (%h, %cd)" "$prevtag"..HEAD |
+                fold --spaces --width 76 | sed 's/^\([^ ]\+\)/    \1/'
+        echo
+        echo " -- $3  `LANG=C date -R`"
+}
+
+pkgversion=$(git describe --dirty | cut -c2- |
+		sed 's/-\([0-9]\+\)-\(g[0-9a-f]\+\)/+\1~\2/' |
+		sed 's/\(~g[0-9a-f]\+\)-dirty$/-dirty\1/' |
+		sed 's/-dirty/~dirty.'`date +%Y%m%d%H%M%S`'/'
+	)-$(lsb_release -cs)
+
+pkgmaint=$(echo "`git config user.name` <`git config user.email`>")
+
+changelog=`mktemp`
+trap "rm -f '$changelog'; exit 1" INT TERM QUIT
+
+pkgname=miniircd
+genchangelog "$pkgname" "$pkgversion" "$pkgmaint" > "$changelog"
+fpm -f -s dir -t deb -n "$pkgname" -v "$pkgversion" \
+	--architecture all \
+	--maintainer "$pkgmaint" \
+	--description "Minimal IRC daemon" \
+	--url 'https://github.com/jrosdahl/miniircd' \
+	--license GPLv2 \
+	--category net \
+	--depends python2.7 \
+	--before-install preinst.sh \
+	--after-install postinst.sh \
+	--before-remove prerm.sh \
+	--after-remove postrm.sh \
+	--deb-changelog "$changelog" \
+	upstart.conf=/etc/init/$pkgname.conf \
+	../README.md=/usr/share/doc/$pkgname/README.md \
+	../miniircd=/usr/sbin/$pkgname
+

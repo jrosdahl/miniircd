@@ -33,6 +33,7 @@ import time
 from datetime import datetime
 from optparse import OptionParser
 
+
 def create_directory(path):
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -731,7 +732,7 @@ class Server(object):
             client.channel_log(x, "quit (%s)" % quitmsg, meta=True)
             x.remove_client(client)
         if client.nickname \
-               and irc_lower(client.nickname) in self.nicknames:
+                and irc_lower(client.nickname) in self.nicknames:
             del self.nicknames[irc_lower(client.nickname)]
         del self.clients[client.socket]
 
@@ -766,7 +767,7 @@ class Server(object):
             (iwtd, owtd, ewtd) = select.select(
                 serversockets + [x.socket for x in self.clients.values()],
                 [x.socket for x in self.clients.values()
-                          if x.write_queue_size() > 0],
+                 if x.write_queue_size() > 0],
                 [],
                 10)
             for x in iwtd:
@@ -791,7 +792,7 @@ class Server(object):
                     self.print_info("Accepted connection from %s:%s." % (
                         addr[0], addr[1]))
             for x in owtd:
-                if x in self.clients: # client may have been disconnected
+                if x in self.clients:  # client may have been disconnected
                     self.clients[x].socket_writable_notification()
             now = time.time()
             if last_aliveness_check + 10 < now:
@@ -896,8 +897,8 @@ def main(argv):
     if (os.getuid() == 0 or os.getgid() == 0) and not options.setuid:
         op.error("Running this service as root is not recommended. Use the"
                  " --setuid option to switch to an unprivileged account after"
-                 " startup. If you really intend to run as root, use \"--setuid"
-                 " root\".")
+                 " startup. If you really intend to run as root, use"
+                 " \"--setuid root\".")
 
     ports = []
     for port in re.split(r"[,\s]+", options.ports):

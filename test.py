@@ -11,6 +11,7 @@ from nose.tools import assert_not_in, assert_true
 
 SERVER_PORT = 16667
 
+
 class ServerFixture(object):
     def setUp(self, persistent=False):
         if persistent:
@@ -22,7 +23,7 @@ class ServerFixture(object):
             # Child.
             arguments = [
                 "miniircd",
-#                "--debug",
+                # "--debug",
                 "--ports=%d" % SERVER_PORT,
                 ]
             if persistent:
@@ -254,7 +255,9 @@ class TestBasicStuff(ServerFixture):
     def test_lusers(self):
         self.connect("apa")
         self.send("apa", "lusers")
-        self.expect("apa", r":local\S+ 251 apa :There are \d+ users and \d+ services on \d+ servers*")
+        self.expect("apa",
+                    r":local\S+ 251 apa :There are \d+ users and \d+ services"
+                    " on \d+ servers*")
 
 
 class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):

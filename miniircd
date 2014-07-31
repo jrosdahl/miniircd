@@ -884,10 +884,12 @@ def main(argv):
         if os.getuid() != 0:
             op.error("Must be root to use --setuid")
         matches = options.setuid.split(":")
-        if len(matches) > 1:
-            options.setuid = (int(getpwnam(matches[0]).pw_uid),int(getgrnam(matches[1]).gr_gid))
+        if len(matches) == 2:
+            options.setuid = (getpwnam(matches[0]).pw_uid,
+                              getgrnam(matches[1]).gr_gid)
         elif len(matches) == 1:
-            options.setuid = (int(getpwnam(matches[0]).pw_uid),int(getpwnam(matches[0]).pw_gid))
+            options.setuid = (getpwnam(matches[0]).pw_uid,
+                              getpwnam(matches[0]).pw_gid)
         else:
             op.error("Specify a user, or user and group separated by a colon,"
                      " e.g. --setuid daemon, --setuid nobody:nobody")

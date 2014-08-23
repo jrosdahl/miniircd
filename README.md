@@ -96,13 +96,13 @@ GNU General Public License version 2 or later.
 Primary author
 --------------
 
-Joel Rosdahl <joel@rosdahl.net>
+- Joel Rosdahl <joel@rosdahl.net>
 
 Contributors
 ------------
 
-Alex Wright
-Leandro Lucarella
-Martin Maney
-Matt Behrens
-Ron Fritz
+- Alex Wright
+- Leandro Lucarella
+- Martin Maney
+- Matt Behrens
+- Ron Fritz

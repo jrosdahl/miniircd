@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/env python
 
 import os
 import re
@@ -44,7 +44,7 @@ class ServerFixture(object):
             except socket.error:
                 tries_left -= 1
                 time.sleep(0.01)
-        self.connections[nick] = s.makefile()
+        self.connections[nick] = s.makefile(mode="rw")
         self.send(nick, "NICK %s" % nick)
         self.send(nick, "USER %s * * %s" % (nick, nick))
         self.expect(nick, r":local\S+ 001 %s :.*" % nick)

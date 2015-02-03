@@ -541,7 +541,7 @@ class Client(object):
             self.server.print_debug(
                 "[%s:%d] -> %r" % (self.host, self.port, data))
             quitmsg = "EOT"
-        except socket.error, x:
+        except socket.error as x:
             data = ""
             quitmsg = x
         if data:
@@ -559,7 +559,7 @@ class Client(object):
                 "[%s:%d] <- %r" % (
                     self.host, self.port, self.__writebuffer[:sent]))
             self.__writebuffer = self.__writebuffer[sent:]
-        except socket.error, x:
+        except socket.error as x:
             self.disconnect(x)
 
     def disconnect(self, quitmsg):
@@ -705,12 +705,12 @@ class Server(object):
 
     def print_info(self, msg):
         if self.verbose:
-            print msg
+            print(msg)
             sys.stdout.flush()
 
     def print_debug(self, msg):
         if self.debug:
-            print msg
+            print(msg)
             sys.stdout.flush()
 
     def print_error(self, msg):
@@ -800,11 +800,10 @@ class Server(object):
                     client.check_aliveness()
                 last_aliveness_check = now
 
-
-_alpha = "abcdefghijklmnopqrstuvwxyz"
-_ircstring_translation = string.maketrans(
-    string.upper(_alpha) + "[]\\^",
-    _alpha + "{}|~")
+_maketrans = str.maketrans if sys.version_info[0] == 3 else string.maketrans
+_ircstring_translation = _maketrans(
+    string.ascii_lowercase.upper() + "[]\\^",
+    string.ascii_lowercase + "{}|~")
 
 
 def irc_lower(s):

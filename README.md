@@ -33,8 +33,7 @@ Limitations
 Requirements
 ------------
 
-Python 2.5 or newer, Python 2.6 or newer when --ssl-pem-file is used.
-Get it at http://www.python.org.
+Python 2.6 or newer. Get it at http://www.python.org.
 
 Installation
 ------------

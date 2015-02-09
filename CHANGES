@@ -2,10 +2,11 @@ Unreleased
 
   * Added support for the LUSERS command (by Alex Wright).
   * Added basic SSL support (by Leandro Lucarella).
-  * Added support for --chroot and -setuid (by Ron Fritz).
+  * Added support for --chroot and -setuid (by Rezrov Frotz).
   * Added --listen option to set address to bind to (by Martin Maney).
+  * Added support for Python 3 and dropped support for Python 2.5 and older.
 
-0.4 2012-07-01
+0.4 (2012-07-01)
 
   * Added support for channel keys.
   * 422 message is now sent after registration when no MOTD is available. This
@@ -14,7 +15,7 @@ Unreleased
   * Added option to store persistent state (currently channel topic and key).
   * Fixed crash when the write queue for a disconnected client is non-empty.
 
-0.3 2011-08-25
+0.3 (2011-08-25)
 
   * Added --debug flag.
   * Added optional logging of channel messages to file.
@@ -22,20 +23,20 @@ Unreleased
   * Understand but ignore AWAY messages.
   * Various code cleanup.
 
-0.2.0 2003-12-12
+0.2.0 (2003-12-12)
 
   * Added switch for specifying a MOTD file.
   * Added WHOIS and MOTD commands.
 
-0.1.1 2003-12-09
+0.1.1 (2003-12-09)
 
   * Handle bad port specification nicely.
   * Minor cleanups.
 
-0.1.0 2003-12-03
+0.1.0 (2003-12-03)
 
   * First released version.
 
-0.0.0 autumn, 2003
+0.0.0 (autumn, 2003)
 
   * [Internal usage.]

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # Hey, Emacs! This is -*-python-*-.
 #
-# Copyright (C) 2003-2014 Joel Rosdahl
+# Copyright (C) 2003-2015 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -647,8 +647,8 @@ class Server(object):
             self.address = socket.gethostbyname(options.listen)
         else:
             self.address = ""
-        self.name = socket.getfqdn(self.address)[:63]  # Server name limit from
-                                                       # the RFC.
+        server_name_limit = 63  # From the RFC.
+        self.name = socket.getfqdn(self.address)[:server_name_limit]
 
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
         self.clients = {}  # Socket --> Client instance.

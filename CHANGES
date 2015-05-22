@@ -1,3 +1,7 @@
+1.1 (2015-05-22)
+
+  * Allow dash in nicknames.
+
 1.0 (2015-02-09)
 
   * Added support for the LUSERS command (by Alex Wright).

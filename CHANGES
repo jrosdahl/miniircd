@@ -1,3 +1,7 @@
+Unreleased
+
+  * Find certificate specified with relative path when using --daemon.
+
 1.1 (2015-05-22)
 
   * Allow dash in nicknames.

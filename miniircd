@@ -643,6 +643,11 @@ class Server(object):
         self.setuid = options.setuid
         self.statedir = options.statedir
 
+        # Find certificate after daemonization if path is relative:
+        if self.ssl_pem_file and os.path.exists(self.ssl_pem_file):
+            self.ssl_pem_file = os.path.abspath(self.ssl_pem_file)
+        # else: might exist in the chroot jail, so just continue
+
         if options.listen:
             self.address = socket.gethostbyname(options.listen)
         else:

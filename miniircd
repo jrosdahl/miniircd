@@ -793,9 +793,15 @@ class Server(object):
                                 "SSL error for connection from %s:%s: %s" % (
                                     addr[0], addr[1], e))
                             continue
-                    self.clients[conn] = Client(self, conn)
-                    self.print_info("Accepted connection from %s:%s." % (
-                        addr[0], addr[1]))
+                    try:
+                        self.clients[conn] = Client(self, conn)
+                        self.print_info("Accepted connection from %s:%s." % (
+                            addr[0], addr[1]))
+                    except socket.error as e:
+                        try:
+                            conn.close()
+                        except:
+                            pass
             for x in owtd:
                 if x in self.clients:  # client may have been disconnected
                     self.clients[x].socket_writable_notification()

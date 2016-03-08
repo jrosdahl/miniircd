@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # Hey, Emacs! This is -*-python-*-.
 #
-# Copyright (C) 2003-2015 Joel Rosdahl
+# Copyright (C) 2003-2016 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -643,6 +643,9 @@ class Server(object):
         self.setuid = options.setuid
         self.statedir = options.statedir
 
+        if self.ssl_pem_file:
+            self.ssl = __import__("ssl")
+
         # Find certificate after daemonization if path is relative:
         if self.ssl_pem_file and os.path.exists(self.ssl_pem_file):
             self.ssl_pem_file = os.path.abspath(self.ssl_pem_file)
@@ -781,14 +784,13 @@ class Server(object):
                 else:
                     (conn, addr) = x.accept()
                     if self.ssl_pem_file:
-                        import ssl
                         try:
-                            conn = ssl.wrap_socket(
+                            conn = self.ssl.wrap_socket(
                                 conn,
                                 server_side=True,
                                 certfile=self.ssl_pem_file,
                                 keyfile=self.ssl_pem_file)
-                        except ssl.SSLError as e:
+                        except self.ssl.SSLError as e:
                             self.print_error(
                                 "SSL error for connection from %s:%s: %s" % (
                                     addr[0], addr[1], e))

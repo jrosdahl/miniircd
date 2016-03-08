@@ -2,6 +2,7 @@ Unreleased
 
   * Find certificate specified with relative path when using --daemon.
   * Handle quickly disconnecting client without crashing.
+  * Import ssl module before entering chroot jail.
 
 1.1 (2015-05-22)
 

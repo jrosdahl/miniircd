@@ -20,8 +20,6 @@
 #
 # Joel Rosdahl <joel@rosdahl.net>
 
-VERSION = "1.1"
-
 import os
 import re
 import select
@@ -32,6 +30,8 @@ import tempfile
 import time
 from datetime import datetime
 from optparse import OptionParser
+
+VERSION = "1.1"
 
 
 def create_directory(path):

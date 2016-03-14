@@ -20,6 +20,7 @@
 #
 # Joel Rosdahl <joel@rosdahl.net>
 
+import logging
 import os
 import re
 import select
@@ -28,13 +29,12 @@ import string
 import sys
 import tempfile
 import time
-import logging
-import subprocess
 from datetime import datetime
-from optparse import OptionParser
 from logging.handlers import RotatingFileHandler
+from optparse import OptionParser
 
 VERSION = "1.1"
+
 
 def create_directory(path):
     if not os.path.isdir(path):
@@ -644,9 +644,9 @@ class Server(object):
         self.chroot = options.chroot
         self.setuid = options.setuid
         self.statedir = options.statedir
-        self.miniircd_log_file = options.miniircd_log_file
-        self.miniircd_log_maxbytes = options.miniircd_log_maxsize * 1024 * 1024
-        self.miniircd_log_count = options.miniircd_log_count
+        self.log_file = options.log_file
+        self.log_maxbytes = options.log_maxsize * 1024 * 1024
+        self.log_count = options.log_count
         self.logger = None
 
         if self.ssl_pem_file:
@@ -673,23 +673,6 @@ class Server(object):
             create_directory(self.statedir)
 
     def make_pidfile(self, filename):
-        if (os.path.isfile(filename)):
-            pid_fo = open(filename, "r")
-            old_pid = pid_fo.readline().strip()
-            pid_fo.close()
-
-            old_pid_is_deprecated = False
-            try:
-                result = subprocess.check_output(["ps", "--pid", old_pid, "-o", "pid=,args="])
-                if (result.find("miniircd") == -1):
-                    old_pid_is_deprecated = True
-            except:
-                old_pid_is_deprecated = True
-
-            if old_pid_is_deprecated:
-                self.print_debug("Remove deprecated pidfile '%s'" % filename)
-                os.remove(filename)
-
         try:
             fd = os.open(filename, os.O_RDWR | os.O_CREAT | os.O_EXCL, 0644)
             os.write(fd, "%i\n" % os.getpid())
@@ -818,7 +801,7 @@ class Server(object):
             raise
 
     def miniircd_log_init(self):
-        if not self.miniircd_log_file:
+        if not self.log_file:
             return
 
         log_level = logging.INFO
@@ -827,8 +810,13 @@ class Server(object):
 
         self.logger = logging.getLogger("miniircd")
 
-        formatter = logging.Formatter("%(asctime)s - %(name)s[%(process)d] - %(levelname)s - %(message)s")
-        fh = RotatingFileHandler(self.miniircd_log_file, maxBytes=self.miniircd_log_maxbytes, backupCount=self.miniircd_log_count)
+        formatter = logging.Formatter(
+            ("%(asctime)s - %(name)s[%(process)d] - "
+             "%(levelname)s - %(message)s"))
+        fh = RotatingFileHandler(
+            self.log_file,
+            maxBytes=self.log_maxbytes,
+            backupCount=self.log_count)
         fh.setLevel(log_level)
         fh.setFormatter(formatter)
 
@@ -906,21 +894,22 @@ def main(argv):
         metavar="X",
         help="listen on specific IP address X")
     op.add_option(
-        "--make-pidfile",
+        "--pidfile",
         metavar="X",
         help="make pidfile file X")
     op.add_option(
-        "--miniircd-log-file",
+        "--log-file",
         metavar="X",
-        help="store miniircd log in file X")
+        help="store log in file X")
     op.add_option(
-        "--miniircd-log-maxsize",
+        "--log-maxsize",
         metavar="X", default=10, type="int",
-        help="set maximum miniircd log file size to X MiB [default: %default MiB]")
+        help=("set maximum log file size to X MiB "
+              "[default: %default MiB]"))
     op.add_option(
-        "--miniircd-log-count",
+        "--log-count",
         metavar="X", default=10, type="int",
-        help="set count backup miniircd log file to X [default: %default]")
+        help="set count backup log file to X [default: %default]")
     op.add_option(
         "--logdir",
         metavar="X",
@@ -1004,8 +993,8 @@ def main(argv):
     server = Server(options)
     if options.daemon:
         server.daemonize()
-    if options.make_pidfile:
-        server.make_pidfile(options.make_pidfile)
+    if options.pidfile:
+        server.make_pidfile(options.pidfile)
     try:
         server.start()
     except KeyboardInterrupt:

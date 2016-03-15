@@ -20,6 +20,7 @@
 #
 # Joel Rosdahl <joel@rosdahl.net>
 
+import logging
 import os
 import re
 import select
@@ -29,6 +30,7 @@ import sys
 import tempfile
 import time
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from optparse import OptionParser
 
 VERSION = "1.1"
@@ -642,6 +644,14 @@ class Server(object):
         self.chroot = options.chroot
         self.setuid = options.setuid
         self.statedir = options.statedir
+        self.log_file = options.log_file
+        self.log_maxbytes = options.log_maxsize * 1024 * 1024
+        self.log_count = options.log_count
+        self.logger = None
+
+        if options.password_file:
+            with open(options.password_file, "r") as fo:
+                self.password = fo.read().strip("\n")
 
         if self.ssl_pem_file:
             self.ssl = __import__("ssl")
@@ -665,6 +675,15 @@ class Server(object):
             create_directory(self.logdir)
         if self.statedir:
             create_directory(self.statedir)
+
+    def make_pidfile(self, filename):
+        try:
+            fd = os.open(filename, os.O_RDWR | os.O_CREAT | os.O_EXCL, 0644)
+            os.write(fd, "%i\n" % os.getpid())
+            os.close(fd)
+        except:
+            self.print_error("Could not create pidfile '%s'" % filename)
+            sys.exit(1)
 
     def daemonize(self):
         try:
@@ -715,14 +734,20 @@ class Server(object):
         if self.verbose:
             print(msg)
             sys.stdout.flush()
+        if self.logger:
+            self.logger.info(msg)
 
     def print_debug(self, msg):
         if self.debug:
             print(msg)
             sys.stdout.flush()
+        if self.logger:
+            self.logger.debug(msg)
 
     def print_error(self, msg):
         sys.stderr.write("%s\n" % msg)
+        if self.logger:
+            self.logger.error(msg)
 
     def client_changed_nickname(self, client, oldnickname):
         if oldnickname:
@@ -770,6 +795,39 @@ class Server(object):
             os.setuid(self.setuid[0])
             self.print_info("Setting uid:gid to %s:%s"
                             % (self.setuid[0], self.setuid[1]))
+
+        self.miniircd_log_init()
+        try:
+            self.loop(serversockets)
+        except:
+            if self.logger:
+                self.logger.exception("Fatal exception")
+            raise
+
+    def miniircd_log_init(self):
+        if not self.log_file:
+            return
+
+        log_level = logging.INFO
+        if self.debug:
+            log_level = logging.DEBUG
+
+        self.logger = logging.getLogger("miniircd")
+
+        formatter = logging.Formatter(
+            ("%(asctime)s - %(name)s[%(process)d] - "
+             "%(levelname)s - %(message)s"))
+        fh = RotatingFileHandler(
+            self.log_file,
+            maxBytes=self.log_maxbytes,
+            backupCount=self.log_count)
+        fh.setLevel(log_level)
+        fh.setFormatter(formatter)
+
+        self.logger.setLevel(log_level)
+        self.logger.addHandler(fh)
+
+    def loop(self, serversockets):
         last_aliveness_check = time.time()
         while True:
             (iwtd, owtd, ewtd) = select.select(
@@ -790,7 +848,7 @@ class Server(object):
                                 server_side=True,
                                 certfile=self.ssl_pem_file,
                                 keyfile=self.ssl_pem_file)
-                        except self.ssl.SSLError as e:
+                        except BaseException as e:
                             self.print_error(
                                 "SSL error for connection from %s:%s: %s" % (
                                     addr[0], addr[1], e))
@@ -840,6 +898,23 @@ def main(argv):
         metavar="X",
         help="listen on specific IP address X")
     op.add_option(
+        "--pidfile",
+        metavar="X",
+        help="make pidfile file X")
+    op.add_option(
+        "--log-file",
+        metavar="X",
+        help="store log in file X")
+    op.add_option(
+        "--log-maxsize",
+        metavar="X", default=10, type="int",
+        help=("set maximum log file size to X MiB "
+              "[default: %default MiB]"))
+    op.add_option(
+        "--log-count",
+        metavar="X", default=10, type="int",
+        help="set count backup log file to X [default: %default]")
+    op.add_option(
         "--logdir",
         metavar="X",
         help="store channel log in directory X")
@@ -855,6 +930,11 @@ def main(argv):
         "-p", "--password",
         metavar="X",
         help="require connection password X; default: no password")
+    op.add_option(
+        "--password-file",
+        metavar="X",
+        help=("require connection password store in file X; "
+              "default: no password"))
     op.add_option(
         "--ports",
         metavar="X",
@@ -922,6 +1002,8 @@ def main(argv):
     server = Server(options)
     if options.daemon:
         server.daemonize()
+    if options.pidfile:
+        server.make_pidfile(options.pidfile)
     try:
         server.start()
     except KeyboardInterrupt:

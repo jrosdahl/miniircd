@@ -844,7 +844,7 @@ class Server(object):
                                 server_side=True,
                                 certfile=self.ssl_pem_file,
                                 keyfile=self.ssl_pem_file)
-                        except self.ssl.SSLError as e:
+                        except BaseException as e:
                             self.print_error(
                                 "SSL error for connection from %s:%s: %s" % (
                                     addr[0], addr[1], e))

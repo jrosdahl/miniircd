@@ -649,6 +649,10 @@ class Server(object):
         self.log_count = options.log_count
         self.logger = None
 
+        if options.password_file:
+            with open(options.password_file, "r") as fo:
+                self.password = fo.read().strip("\n")
+
         if self.ssl_pem_file:
             self.ssl = __import__("ssl")
 
@@ -926,6 +930,11 @@ def main(argv):
         "-p", "--password",
         metavar="X",
         help="require connection password X; default: no password")
+    op.add_option(
+        "--password-file",
+        metavar="X",
+        help=("require connection password store in file X; "
+              "default: no password"))
     op.add_option(
         "--ports",
         metavar="X",

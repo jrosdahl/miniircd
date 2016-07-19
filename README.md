@@ -54,13 +54,12 @@ To create a new chroot jail for miniircd, edit the Makefile and change JAILDIR
 and JAILUSER to suit your needs, then run ``make jail`` as root. If you have a
 motd file or an SSL pem file, you'll need to put them in the jail as well:
 
-
     # cp miniircd.pem motd.txt /var/jail/miniircd
 
-Remember to specify the paths for --statedir, --logdir, --motd, and
+Remember to specify the paths for --state-dir, --log-dir, --motd and
 --ssl-pem-file from within the jail, e.g.:
 
-    # sudo miniircd --statedir=/ --logdir=/ --motd=/motd.txt --setuid=nobody \
+    # miniircd --state-dir=/ --log-dir=/ --motd=/motd.txt --setuid=nobody \
           --ssl-pem-file=/miniircd.pem --chroot=/var/jail/miniircd
 
 Make sure your jail is writable by whatever user/group you are running the
@@ -101,6 +100,7 @@ Contributors
 ------------
 
 - Alex Wright
+- Jan Fuchs
 - Leandro Lucarella
 - Martin Maney
 - Matt Behrens

@@ -27,7 +27,7 @@ class ServerFixture(object):
                 "--ports=%d" % SERVER_PORT,
                 ]
             if persistent:
-                arguments.append("--statedir=%s" % self.state_dir)
+                arguments.append("--state-dir=%s" % self.state_dir)
             os.execv("./miniircd", arguments)
         # Parent.
         self.child_pid = pid

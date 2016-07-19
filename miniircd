@@ -48,9 +48,9 @@ class Channel(object):
         self.members = set()
         self._topic = ""
         self._key = None
-        if self.server.statedir:
+        if self.server.state_dir:
             self._state_path = "%s/%s" % (
-                self.server.statedir,
+                self.server.state_dir,
                 name.replace("_", "__").replace("/", "_"))
             self._read_state()
         else:
@@ -643,7 +643,7 @@ class Server(object):
         self.log_dir = options.log_dir
         self.chroot = options.chroot
         self.setuid = options.setuid
-        self.statedir = options.statedir
+        self.state_dir = options.state_dir
         self.log_file = options.log_file
         self.log_maxbytes = options.log_maxsize * 1024 * 1024
         self.log_count = options.log_count
@@ -673,8 +673,8 @@ class Server(object):
         self.nicknames = {}  # irc_lower(Nickname) --> Client instance.
         if self.log_dir:
             create_directory(self.log_dir)
-        if self.statedir:
-            create_directory(self.statedir)
+        if self.state_dir:
+            create_directory(self.state_dir)
 
     def make_pid_file(self, filename):
         try:
@@ -941,7 +941,7 @@ def main(argv):
         help="listen to ports X (a list separated by comma or whitespace);"
              " default: 6667 or 6697 if SSL is enabled")
     op.add_option(
-        "--statedir",
+        "--state-dir",
         metavar="X",
         help="save persistent channel state (topic, key) in directory X")
     op.add_option(

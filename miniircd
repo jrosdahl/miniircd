@@ -645,13 +645,13 @@ class Server(object):
         self.setuid = options.setuid
         self.state_dir = options.state_dir
         self.log_file = options.log_file
-        self.log_maxbytes = options.log_maxsize * 1024 * 1024
+        self.log_max_bytes = options.log_max_size * 1024 * 1024
         self.log_count = options.log_count
         self.logger = None
 
         if options.password_file:
-            with open(options.password_file, "r") as fo:
-                self.password = fo.read().strip("\n")
+            with open(options.password_file, "r") as fp:
+                self.password = fp.read().strip("\n")
 
         if self.ssl_pem_file:
             self.ssl = __import__("ssl")
@@ -682,7 +682,7 @@ class Server(object):
             os.write(fd, "%i\n" % os.getpid())
             os.close(fd)
         except:
-            self.print_error("Could not create PID file '%s'" % filename)
+            self.print_error("Could not create PID file %r" % filename)
             sys.exit(1)
 
     def daemonize(self):
@@ -796,38 +796,35 @@ class Server(object):
             self.print_info("Setting uid:gid to %s:%s"
                             % (self.setuid[0], self.setuid[1]))
 
-        self.miniircd_log_init()
+        self.init_logging()
         try:
-            self.loop(serversockets)
+            self.run(serversockets)
         except:
             if self.logger:
                 self.logger.exception("Fatal exception")
             raise
 
-    def miniircd_log_init(self):
+    def init_logging(self):
         if not self.log_file:
             return
 
         log_level = logging.INFO
         if self.debug:
             log_level = logging.DEBUG
-
         self.logger = logging.getLogger("miniircd")
-
         formatter = logging.Formatter(
             ("%(asctime)s - %(name)s[%(process)d] - "
              "%(levelname)s - %(message)s"))
         fh = RotatingFileHandler(
             self.log_file,
-            maxBytes=self.log_maxbytes,
+            maxBytes=self.log_max_bytes,
             backupCount=self.log_count)
         fh.setLevel(log_level)
         fh.setFormatter(formatter)
-
         self.logger.setLevel(log_level)
         self.logger.addHandler(fh)
 
-    def loop(self, serversockets):
+    def run(self, serversockets):
         last_aliveness_check = time.time()
         while True:
             (iwtd, owtd, ewtd) = select.select(
@@ -898,34 +895,29 @@ def main(argv):
         metavar="X",
         help="listen on specific IP address X")
     op.add_option(
-        "--pid-file",
-        metavar="X",
-        help="write PID to file X")
-    op.add_option(
-        "--log-file",
-        metavar="X",
-        help="store log in file X")
-    op.add_option(
-        "--log-maxsize",
-        metavar="X", default=10, type="int",
-        help=("set maximum log file size to X MiB "
-              "[default: %default MiB]"))
-    op.add_option(
         "--log-count",
         metavar="X", default=10, type="int",
-        help="set count backup log file to X [default: %default]")
+        help="keep X log files; default: %default")
     op.add_option(
         "--log-dir",
         metavar="X",
         help="store channel log in directory X")
     op.add_option(
+        "--log-file",
+        metavar="X",
+        help="store log in file X")
+    op.add_option(
+        "--log-max-size",
+        metavar="X", default=10, type="int",
+        help="set maximum log file size to X MiB; default: %default MiB")
+    op.add_option(
         "--motd",
         metavar="X",
         help="display file X as message of the day")
     op.add_option(
-        "-s", "--ssl-pem-file",
-        metavar="FILE",
-        help="enable SSL and use FILE as the .pem certificate+key")
+        "--pid-file",
+        metavar="X",
+        help="write PID to file X")
     op.add_option(
         "-p", "--password",
         metavar="X",
@@ -933,13 +925,17 @@ def main(argv):
     op.add_option(
         "--password-file",
         metavar="X",
-        help=("require connection password store in file X; "
-              "default: no password"))
+        help=("require connection password stored in file X;"
+              " default: no password"))
     op.add_option(
         "--ports",
         metavar="X",
         help="listen to ports X (a list separated by comma or whitespace);"
              " default: 6667 or 6697 if SSL is enabled")
+    op.add_option(
+        "-s", "--ssl-pem-file",
+        metavar="FILE",
+        help="enable SSL and use FILE as the .pem certificate+key")
     op.add_option(
         "--state-dir",
         metavar="X",

@@ -592,7 +592,7 @@ class Client(object):
                 client.message(line)
 
     def channel_log(self, channel, message, meta=False):
-        if not self.server.logdir:
+        if not self.server.log_dir:
             return
         if meta:
             format = "[%s] * %s %s\n"
@@ -600,7 +600,7 @@ class Client(object):
             format = "[%s] <%s> %s\n"
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         logname = channel.name.replace("_", "__").replace("/", "_")
-        fp = open("%s/%s.log" % (self.server.logdir, logname), "a")
+        fp = open("%s/%s.log" % (self.server.log_dir, logname), "a")
         fp.write(format % (timestamp, self.nickname, message))
         fp.close()
 
@@ -640,7 +640,7 @@ class Server(object):
         self.motdfile = options.motd
         self.verbose = options.verbose
         self.debug = options.debug
-        self.logdir = options.logdir
+        self.log_dir = options.log_dir
         self.chroot = options.chroot
         self.setuid = options.setuid
         self.statedir = options.statedir
@@ -671,8 +671,8 @@ class Server(object):
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
         self.clients = {}  # Socket --> Client instance.
         self.nicknames = {}  # irc_lower(Nickname) --> Client instance.
-        if self.logdir:
-            create_directory(self.logdir)
+        if self.log_dir:
+            create_directory(self.log_dir)
         if self.statedir:
             create_directory(self.statedir)
 
@@ -915,7 +915,7 @@ def main(argv):
         metavar="X", default=10, type="int",
         help="set count backup log file to X [default: %default]")
     op.add_option(
-        "--logdir",
+        "--log-dir",
         metavar="X",
         help="store channel log in directory X")
     op.add_option(

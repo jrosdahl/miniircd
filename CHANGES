@@ -3,6 +3,15 @@ Unreleased
   * Find certificate specified with relative path when using --daemon.
   * Handle quickly disconnecting client without crashing.
   * Import ssl module before entering chroot jail.
+  * Renamed options:
+    * --logdir to --channel-log-dir
+    * --statedir to --state-dir
+  * Added options:
+    * --log-count: number of log files to keep
+    * --log-file: log file path
+    * --log-max-size: maximum size of log file before rotating
+    * --password-file: file from which to read connection password
+    * --pid-file: file to write PID to
 
 1.1 (2015-05-22)
 

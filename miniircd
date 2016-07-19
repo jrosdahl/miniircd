@@ -676,13 +676,13 @@ class Server(object):
         if self.statedir:
             create_directory(self.statedir)
 
-    def make_pidfile(self, filename):
+    def make_pid_file(self, filename):
         try:
             fd = os.open(filename, os.O_RDWR | os.O_CREAT | os.O_EXCL, 0644)
             os.write(fd, "%i\n" % os.getpid())
             os.close(fd)
         except:
-            self.print_error("Could not create pidfile '%s'" % filename)
+            self.print_error("Could not create PID file '%s'" % filename)
             sys.exit(1)
 
     def daemonize(self):
@@ -898,9 +898,9 @@ def main(argv):
         metavar="X",
         help="listen on specific IP address X")
     op.add_option(
-        "--pidfile",
+        "--pid-file",
         metavar="X",
-        help="make pidfile file X")
+        help="write PID to file X")
     op.add_option(
         "--log-file",
         metavar="X",
@@ -1002,8 +1002,8 @@ def main(argv):
     server = Server(options)
     if options.daemon:
         server.daemonize()
-    if options.pidfile:
-        server.make_pidfile(options.pidfile)
+    if options.pid_file:
+        server.make_pid_file(options.pid_file)
     try:
         server.start()
     except KeyboardInterrupt:

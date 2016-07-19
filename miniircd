@@ -592,7 +592,7 @@ class Client(object):
                 client.message(line)
 
     def channel_log(self, channel, message, meta=False):
-        if not self.server.log_dir:
+        if not self.server.channel_log_dir:
             return
         if meta:
             format = "[%s] * %s %s\n"
@@ -600,7 +600,7 @@ class Client(object):
             format = "[%s] <%s> %s\n"
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         logname = channel.name.replace("_", "__").replace("/", "_")
-        fp = open("%s/%s.log" % (self.server.log_dir, logname), "a")
+        fp = open("%s/%s.log" % (self.server.channel_log_dir, logname), "a")
         fp.write(format % (timestamp, self.nickname, message))
         fp.close()
 
@@ -640,7 +640,7 @@ class Server(object):
         self.motdfile = options.motd
         self.verbose = options.verbose
         self.debug = options.debug
-        self.log_dir = options.log_dir
+        self.channel_log_dir = options.channel_log_dir
         self.chroot = options.chroot
         self.setuid = options.setuid
         self.state_dir = options.state_dir
@@ -671,8 +671,8 @@ class Server(object):
         self.channels = {}  # irc_lower(Channel name) --> Channel instance.
         self.clients = {}  # Socket --> Client instance.
         self.nicknames = {}  # irc_lower(Nickname) --> Client instance.
-        if self.log_dir:
-            create_directory(self.log_dir)
+        if self.channel_log_dir:
+            create_directory(self.channel_log_dir)
         if self.state_dir:
             create_directory(self.state_dir)
 
@@ -883,6 +883,10 @@ def main(argv):
         version=VERSION,
         description="miniircd is a small and limited IRC server.")
     op.add_option(
+        "--channel-log-dir",
+        metavar="X",
+        help="store channel log in directory X")
+    op.add_option(
         "-d", "--daemon",
         action="store_true",
         help="fork and become a daemon")
@@ -898,10 +902,6 @@ def main(argv):
         "--log-count",
         metavar="X", default=10, type="int",
         help="keep X log files; default: %default")
-    op.add_option(
-        "--log-dir",
-        metavar="X",
-        help="store channel log in directory X")
     op.add_option(
         "--log-file",
         metavar="X",

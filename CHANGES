@@ -12,6 +12,7 @@ Unreleased
     * --log-max-size: maximum size of log file before rotating
     * --password-file: file from which to read connection password
     * --pid-file: file to write PID to
+  * Made it possible to run miniircd in Python 3.
 
 1.1 (2015-05-22)
 

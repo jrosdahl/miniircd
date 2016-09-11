@@ -33,7 +33,8 @@ Limitations
 Requirements
 ------------
 
-Python 2.6 or newer. Get it at http://www.python.org.
+Python 2.6 or newer. Get it at http://www.python.org. Python 3 should also
+work.
 
 Installation
 ------------

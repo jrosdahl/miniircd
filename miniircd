@@ -269,11 +269,16 @@ class Client(object):
                 else:
                     self.reply("331 %s %s :No topic is set"
                                % (self.nickname, channel.name))
-                self.reply("353 %s = %s :%s"
-                           % (self.nickname,
-                              channelname,
-                              " ".join(sorted(x.nickname
-                                              for x in channel.members))))
+                names_prefix = "353 %s = %s :" % (self.nickname, channelname)
+                names = names_prefix
+                for name in sorted(x.nickname for x in channel.members):
+                    # 510 + space + CRLF = 512 as per RFC
+                    if len(names) + len(name) > 509:
+                        self.reply(names)
+                        names = names_prefix + name
+                    else:
+                        names += ' ' + name
+                self.reply(names)
                 self.reply("366 %s %s :End of NAMES list"
                            % (self.nickname, channelname))
 

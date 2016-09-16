@@ -269,9 +269,11 @@ class Client(object):
                                % (self.nickname, channel.name))
                 names_prefix = "353 %s = %s :" % (self.nickname, channelname)
                 names = names_prefix
+                # max length: reply prefix ":server_name(space)" plus CRLF in the end
+                names_max_len = 512 - (len(self.server.name) + 2 + 2)
                 for name in sorted(x.nickname for x in channel.members):
-                    # 510 + space + CRLF = 512 as per RFC
-                    if len(names) + len(name) > 509:
+                    # using >= to include the space between "names" and "name"
+                    if len(names) + len(name) >= names_max_len:
                         self.reply(names)
                         names = names_prefix + name
                     else:

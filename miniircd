@@ -270,17 +270,21 @@ class Client(object):
                     self.reply("331 %s %s :No topic is set"
                                % (self.nickname, channel.name))
                 names_prefix = "353 %s = %s :" % (self.nickname, channelname)
-                names = names_prefix
-                # max length: reply prefix ":server_name(space)" plus CRLF in the end
+                names = ''
+                # max length: reply prefix ":server_name(space)"
+                # plus CRLF in the end
                 names_max_len = 512 - (len(self.server.name) + 2 + 2)
                 for name in sorted(x.nickname for x in channel.members):
+                    if not names:
+                        names = names_prefix + name
                     # using >= to include the space between "names" and "name"
-                    if len(names) + len(name) >= names_max_len:
+                    elif len(names) + len(name) >= names_max_len:
                         self.reply(names)
                         names = names_prefix + name
                     else:
                         names += ' ' + name
-                self.reply(names)
+                if names:
+                    self.reply(names)
                 self.reply("366 %s %s :End of NAMES list"
                            % (self.nickname, channelname))
 

@@ -243,6 +243,60 @@ class TestBasicStuff(ServerFixture):
         self.expect("lemur", r":lemur!lemur@127.0.0.1 PART #fisk :boa")
         self.expect("apa", r":lemur!lemur@127.0.0.1 PART #fisk :boa")
 
+    def test_join_and_name_many_users(self):
+        base_nick = 'A' * 49
+        # :FQDN 353 nick = #fisk :
+        base_len = len(socket.getfqdn()) + 66
+
+        one_line = (512 - base_len) / 50
+        nick_list_one = []
+        for i in range(one_line):
+            long_nick = '%s%d' % (base_nick, i)
+            nick_list_one.append(long_nick)
+            self.connect(long_nick)
+            self.send(long_nick, "JOIN #fisk")
+            self.expect(
+                long_nick,
+                r":%(nick)s!%(nick)s@127.0.0.1 JOIN #fisk" % {
+                    'nick': long_nick
+                }
+            )
+            self.expect(long_nick, r":local\S+ 331 %s #fisk :.*" % long_nick)
+            self.expect(
+                long_nick,
+                r":local\S+ 353 %s = #fisk :%s" % (
+                    long_nick, ' '.join(nick_list_one)
+                )
+            )
+            self.expect(long_nick, r":local\S+ 366 %s #fisk :.*" % long_nick)
+
+        nick_list_two = []
+        for i in range(10 - one_line):
+            long_nick = '%s%d' % (base_nick, one_line + i)
+            nick_list_two.append(long_nick)
+            self.connect(long_nick)
+            self.send(long_nick, "JOIN #fisk")
+            self.expect(
+                long_nick,
+                r":%(nick)s!%(nick)s@127.0.0.1 JOIN #fisk" % {
+                    'nick': long_nick
+                }
+            )
+            self.expect(long_nick, r":local\S+ 331 %s #fisk :.*" % long_nick)
+            self.expect(
+                long_nick,
+                r":local\S+ 353 %s = #fisk :%s" % (
+                    long_nick, ' '.join(nick_list_one)
+                )
+            )
+            self.expect(
+                long_nick,
+                r":local\S+ 353 %s = #fisk :%s" % (
+                    long_nick, ' '.join(nick_list_two)
+                )
+            )
+            self.expect(long_nick, r":local\S+ 366 %s #fisk :.*" % long_nick)
+
     def test_ison(self):
         self.connect("apa")
         self.send("apa", "ISON apa lemur")

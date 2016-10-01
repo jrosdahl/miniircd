@@ -90,7 +90,7 @@ should look something like this:
 License
 -------
 
-GNU General Public License version 3 or later.
+GNU General Public License version 2 or later.
 
 Primary author
 --------------

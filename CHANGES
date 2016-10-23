@@ -13,6 +13,7 @@ Unreleased
     * --password-file: file from which to read connection password
     * --pid-file: file to write PID to
   * Split name listing message into multiple 353 messages when needed.
+  * Made miniircd start correctly on Windows.
 
 1.1 (2015-05-22)
 

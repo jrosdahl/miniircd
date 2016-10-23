@@ -5,8 +5,11 @@ JAILDIR = /var/jail/miniircd
 JAILUSER = nobody
 
 .PHONY: all
-all:
-	echo "Nothing to do."
+all: test
+
+.PHONY: test
+test:
+	./test
 
 .PHONY: dist
 dist:

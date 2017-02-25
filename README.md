@@ -105,4 +105,5 @@ Contributors
 - Leandro Lucarella
 - Martin Maney
 - Matt Behrens
+- Michael Rene Wilcox
 - Ron Fritz

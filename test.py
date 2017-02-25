@@ -50,7 +50,7 @@ class ServerFixture(object):
         self.expect(nick, r":local\S+ 001 %s :.*" % nick)
         self.expect(nick, r":local\S+ 002 %s :.*" % nick)
         self.expect(nick, r":local\S+ 003 %s :.*" % nick)
-        self.expect(nick, r":local\S+ 004 %s :.*" % nick)
+        self.expect(nick, r":local\S+ 004 %s .*" % nick)
         self.expect(nick, r":local\S+ 251 %s :.*" % nick)
         self.expect(nick, r":local\S+ 422 %s :.*" % nick)
 

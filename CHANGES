@@ -14,6 +14,7 @@ Unreleased
     * --pid-file: file to write PID to
   * Split name listing message into multiple 353 messages when needed.
   * Made miniircd start correctly on Windows.
+  * Use the same 004 reply syntax as other ircds do.
 
 1.1 (2015-05-22)
 

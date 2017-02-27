@@ -104,6 +104,7 @@ Contributors
 - Jan Fuchs
 - Leandro Lucarella
 - Martin Maney
+- Matt Baxter
 - Matt Behrens
 - Michael Rene Wilcox
 - Ron Fritz

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # Hey, Emacs! This is -*-python-*-.
 #
-# Copyright (C) 2003-2016 Joel Rosdahl
+# Copyright (C) 2003-2017 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -480,7 +480,8 @@ class Client(object):
 
         def wallops_handler():
             if len(arguments) < 1:
-                self.reply_461(command)
+                self.reply_461("WALLOPS")
+                return
             message = arguments[0]
             for client in server.clients.values():
                 client.message(":%s NOTICE %s :Global notice: %s"

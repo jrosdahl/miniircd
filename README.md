@@ -103,6 +103,7 @@ Contributors
 - Alex Wright
 - Jan Fuchs
 - Leandro Lucarella
+- Hanno Foest
 - Martin Maney
 - Matt Baxter
 - Matt Behrens

@@ -15,6 +15,7 @@ Unreleased
   * Split name listing message into multiple 353 messages when needed.
   * Made miniircd start correctly on Windows.
   * Use the same 004 reply syntax as other ircds do.
+  * Fixed wallops command when given no arguments.
 
 1.1 (2015-05-22)
 

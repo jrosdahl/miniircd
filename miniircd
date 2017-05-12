@@ -364,6 +364,28 @@ class Client(object):
         def motd_handler():
             self.send_motd()
 
+        def names_handler():
+            channelname = irc_lower(arguments[0])
+            channel = self.channels[channelname]
+            names_prefix = "353 %s = %s :" % (self.nickname, channelname)
+            names = ""
+            # Max length: reply prefix ":server_name(space)" plus CRLF in
+            # the end.
+            names_max_len = 512 - (len(self.server.name) + 2 + 2)
+            for name in sorted(x.nickname for x in channel.members):
+                if not names:
+                    names = names_prefix + name
+                # Using >= to include the space between "names" and "name".
+                elif len(names) + len(name) >= names_max_len:
+                    self.reply(names)
+                    names = names_prefix + name
+                else:
+                    names += " " + name
+            if names:
+                self.reply(names)
+            self.reply("366 %s %s :End of NAMES list"
+                       % (self.nickname, channelname))
+
         def nick_handler():
             if len(arguments) < 1:
                 self.reply("431 :No nickname given")
@@ -530,6 +552,7 @@ class Client(object):
             "LUSERS": lusers_handler,
             "MODE": mode_handler,
             "MOTD": motd_handler,
+            "NAMES": names_handler,
             "NICK": nick_handler,
             "NOTICE": notice_and_privmsg_handler,
             "PART": part_handler,

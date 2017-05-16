@@ -218,6 +218,61 @@ class Client(object):
             self.send_motd()
             self.__handle_command = self.__command_handler
 
+    def __send_names(self, arguments, for_join=False):
+        server = self.server
+        valid_channel_re = self.__valid_channelname_regexp
+        if len(arguments) > 0:
+            channelnames = arguments[0].split(",")
+        else:
+            channelnames = sorted(self.channels.keys())
+        if len(arguments) > 1:
+            keys = arguments[1].split(",")
+        else:
+            keys = []
+        keys.extend((len(channelnames) - len(keys)) * [None])
+        for (i, channelname) in enumerate(channelnames):
+            if for_join and irc_lower(channelname) in self.channels:
+                continue
+            if not valid_channel_re.match(channelname):
+                self.reply_403(channelname)
+                continue
+            channel = server.get_channel(channelname)
+            if channel.key is not None and channel.key != keys[i]:
+                self.reply(
+                    "475 %s %s :Cannot join channel (+k) - bad key"
+                    % (self.nickname, channelname))
+                continue
+
+            if for_join:
+                channel.add_member(self)
+                self.channels[irc_lower(channelname)] = channel
+                self.message_channel(channel, "JOIN", channelname, True)
+                self.channel_log(channel, "joined", meta=True)
+                if channel.topic:
+                    self.reply("332 %s %s :%s"
+                               % (self.nickname, channel.name, channel.topic))
+                else:
+                    self.reply("331 %s %s :No topic is set"
+                               % (self.nickname, channel.name))
+            names_prefix = "353 %s = %s :" % (self.nickname, channelname)
+            names = ""
+            # Max length: reply prefix ":server_name(space)" plus CRLF in
+            # the end.
+            names_max_len = 512 - (len(self.server.name) + 2 + 2)
+            for name in sorted(x.nickname for x in channel.members):
+                if not names:
+                    names = names_prefix + name
+                # Using >= to include the space between "names" and "name".
+                elif len(names) + len(name) >= names_max_len:
+                    self.reply(names)
+                    names = names_prefix + name
+                else:
+                    names += " " + name
+            if names:
+                self.reply(names)
+            self.reply("366 %s %s :End of NAMES list"
+                       % (self.nickname, channelname))
+
     def __command_handler(self, command, arguments):
         def away_handler():
             pass
@@ -241,52 +296,7 @@ class Client(object):
                     server.remove_member_from_channel(self, channelname)
                 self.channels = {}
                 return
-            channelnames = arguments[0].split(",")
-            if len(arguments) > 1:
-                keys = arguments[1].split(",")
-            else:
-                keys = []
-            keys.extend((len(channelnames) - len(keys)) * [None])
-            for (i, channelname) in enumerate(channelnames):
-                if irc_lower(channelname) in self.channels:
-                    continue
-                if not valid_channel_re.match(channelname):
-                    self.reply_403(channelname)
-                    continue
-                channel = server.get_channel(channelname)
-                if channel.key is not None and channel.key != keys[i]:
-                    self.reply(
-                        "475 %s %s :Cannot join channel (+k) - bad key"
-                        % (self.nickname, channelname))
-                    continue
-                channel.add_member(self)
-                self.channels[irc_lower(channelname)] = channel
-                self.message_channel(channel, "JOIN", channelname, True)
-                self.channel_log(channel, "joined", meta=True)
-                if channel.topic:
-                    self.reply("332 %s %s :%s"
-                               % (self.nickname, channel.name, channel.topic))
-                else:
-                    self.reply("331 %s %s :No topic is set"
-                               % (self.nickname, channel.name))
-                names_prefix = "353 %s = %s :" % (self.nickname, channelname)
-                names = ""
-                # Max length: reply prefix ":server_name(space)" plus CRLF in
-                # the end.
-                names_max_len = 512 - (len(self.server.name) + 2 + 2)
-                for name in sorted(x.nickname for x in channel.members):
-                    if not names:
-                        names = names_prefix + name
-                    # Using >= to include the space between "names" and "name".
-                    elif len(names) + len(name) >= names_max_len:
-                        self.reply(names)
-                        names = names_prefix + name
-                    else:
-                        names += " " + name
-                if names:
-                    self.reply(names)
-                self.reply("366 %s %s :End of NAMES list"
-                           % (self.nickname, channelname))
+            self.__send_names(arguments, for_join=True)
 
         def list_handler():
             if len(arguments) < 1:
@@ -365,26 +375,7 @@ class Client(object):
             self.send_motd()
 
         def names_handler():
-            channelname = irc_lower(arguments[0])
-            channel = self.channels[channelname]
-            names_prefix = "353 %s = %s :" % (self.nickname, channelname)
-            names = ""
-            # Max length: reply prefix ":server_name(space)" plus CRLF in
-            # the end.
-            names_max_len = 512 - (len(self.server.name) + 2 + 2)
-            for name in sorted(x.nickname for x in channel.members):
-                if not names:
-                    names = names_prefix + name
-                # Using >= to include the space between "names" and "name".
-                elif len(names) + len(name) >= names_max_len:
-                    self.reply(names)
-                    names = names_prefix + name
-                else:
-                    names += " " + name
-            if names:
-                self.reply(names)
-            self.reply("366 %s %s :End of NAMES list"
-                       % (self.nickname, channelname))
+            self.__send_names(arguments)
 
         def nick_handler():
             if len(arguments) < 1:

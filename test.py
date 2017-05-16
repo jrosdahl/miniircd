@@ -338,7 +338,7 @@ class TestBasicStuff(ServerFixture):
         )
         self.expect(long_nick, r":local\S+ 366 %s #fisk :.*" % long_nick)
 
-        # Send names request
+        # Request for one channel
         self.send(long_nick, "NAMES #fisk")
         self.expect(
             long_nick,
@@ -353,6 +353,60 @@ class TestBasicStuff(ServerFixture):
             )
         )
         self.expect(long_nick, r":local\S+ 366 %s #fisk :.*" % long_nick)
+
+        # Request no channel
+        self.send(long_nick, "NAMES")
+        self.expect(
+            long_nick,
+            r":local\S+ 353 %s = #fisk :%s" % (
+                long_nick, ' '.join(nick_list_one)
+            )
+        )
+        self.expect(
+            long_nick,
+            r":local\S+ 353 %s = #fisk :%s" % (
+                long_nick, ' '.join(nick_list_two)
+            )
+        )
+        self.expect(long_nick, r":local\S+ 366 %s #fisk :.*" % long_nick)
+
+        # Request for multiple channels
+        self.send(long_nick, "JOIN #test")
+        self.expect(
+            long_nick,
+            r":%(nick)s!%(nick)s@127.0.0.1 JOIN #test" % {
+                'nick': long_nick
+            }
+        )
+        self.expect(long_nick, r":local\S+ 331 %s #test :.*" % long_nick)
+        self.expect(
+            long_nick,
+            r":local\S+ 353 %s = #test :%s" % (
+                long_nick, long_nick
+            )
+        )
+        self.expect(long_nick, r":local\S+ 366 %s #test :.*" % long_nick)
+        self.send(long_nick, "NAMES #fisk,#test")
+        self.expect(
+            long_nick,
+            r":local\S+ 353 %s = #fisk :%s" % (
+                long_nick, ' '.join(nick_list_one)
+            )
+        )
+        self.expect(
+            long_nick,
+            r":local\S+ 353 %s = #fisk :%s" % (
+                long_nick, ' '.join(nick_list_two)
+            )
+        )
+        self.expect(long_nick, r":local\S+ 366 %s #fisk :.*" % long_nick)
+        self.expect(
+            long_nick,
+            r":local\S+ 353 %s = #test :%s" % (
+                long_nick, long_nick
+            )
+        )
+        self.expect(long_nick, r":local\S+ 366 %s #test :.*" % long_nick)
 
     def test_ison(self):
         self.connect("apa")

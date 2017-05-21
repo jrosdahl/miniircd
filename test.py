@@ -248,7 +248,7 @@ class TestBasicStuff(ServerFixture):
         # :FQDN 353 nick = #fisk :
         base_len = len(socket.getfqdn()) + 66
 
-        one_line = (512 - base_len) / 50
+        one_line = (512 - base_len) // 50
         nick_list_one = []
         for i in range(one_line):
             long_nick = '%s%d' % (base_nick, i)

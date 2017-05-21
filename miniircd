@@ -36,6 +36,22 @@ from optparse import OptionParser
 VERSION = "1.1"
 
 
+PY3 = sys.version_info[0] >= 3
+
+if PY3:
+    def buffer_to_socket(msg):
+        return msg.encode('utf-8')
+
+    def socket_to_buffer(buf):
+        return buf.decode('utf-8')
+else:
+    def buffer_to_socket(msg):
+        return msg
+
+    def socket_to_buffer(buf):
+        return buf
+
+
 def create_directory(path):
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -86,7 +102,10 @@ class Channel(object):
         if not (self._state_path and os.path.exists(self._state_path)):
             return
         data = {}
-        exec(open(self._state_path), {}, data)
+
+        with open(self._state_path, "rb") as state_file:
+            exec(state_file.read(), {}, data)
+
         self._topic = data.get("topic", "")
         self._key = data.get("key")
 
@@ -163,8 +182,8 @@ class Client(object):
                 if len(x[1]) > 0 and x[1][0] == ":":
                     arguments = [x[1][1:]]
                 else:
-                    y = string.split(x[1], " :", 1)
-                    arguments = string.split(y[0])
+                    y = x[1].split(" :", 1)
+                    arguments = y[0].split()
                     if len(y) == 2:
                         arguments.append(y[1])
             self.__handle_command(command, arguments)
@@ -296,8 +315,9 @@ class Client(object):
                 for channelname in arguments[0].split(","):
                     if server.has_channel(channelname):
                         channels.append(server.get_channel(channelname))
-            channels.sort(key=lambda x: x.name)
-            for channel in channels:
+
+            sorted_channels = sorted(channels, key=lambda x: x.name)
+            for channel in sorted_channels:
                 self.reply("322 %s %s %d :%s"
                            % (self.nickname, channel.name,
                               len(channel.members), channel.topic))
@@ -559,7 +579,7 @@ class Client(object):
             data = ""
             quitmsg = x
         if data:
-            self.__readbuffer += data
+            self.__readbuffer += socket_to_buffer(data)
             self.__parse_read_buffer()
             self.__timestamp = time.time()
             self.__sent_ping = False
@@ -568,7 +588,7 @@ class Client(object):
 
     def socket_writable_notification(self):
         try:
-            sent = self.socket.send(self.__writebuffer)
+            sent = self.socket.send(buffer_to_socket(self.__writebuffer))
             self.server.print_debug(
                 "[%s:%d] <- %r" % (
                     self.host, self.port, self.__writebuffer[:sent]))
@@ -880,14 +900,15 @@ class Server(object):
                     client.check_aliveness()
                 last_aliveness_check = now
 
-_maketrans = str.maketrans if sys.version_info[0] == 3 else string.maketrans
+
+_maketrans = str.maketrans if PY3 else string.maketrans
 _ircstring_translation = _maketrans(
     string.ascii_lowercase.upper() + "[]\\^",
     string.ascii_lowercase + "{}|~")
 
 
 def irc_lower(s):
-    return string.translate(s, _ircstring_translation)
+    return s.translate(_ircstring_translation)
 
 
 def main(argv):

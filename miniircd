@@ -40,10 +40,10 @@ PY3 = sys.version_info[0] >= 3
 
 if PY3:
     def buffer_to_socket(msg):
-        return msg.encode('utf-8')
+        return msg.encode()
 
     def socket_to_buffer(buf):
-        return buf.decode('utf-8')
+        return buf.decode()
 else:
     def buffer_to_socket(msg):
         return msg

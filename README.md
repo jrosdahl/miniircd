@@ -33,8 +33,9 @@ Limitations
 Requirements
 ------------
 
-Python 2.6 or newer. Get it at http://www.python.org. Python 3 is currently not
-supported.
+Python 2.6 or newer (including the Python 3 series). Get it at
+http://www.python.org.
+
 
 Installation
 ------------

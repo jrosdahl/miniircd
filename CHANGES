@@ -16,6 +16,8 @@ Unreleased
   * Made miniircd start correctly on Windows.
   * Use the same 004 reply syntax as other ircds do.
   * Fixed wallops command when given no arguments.
+  * Added support for the NAMES command (by Braxton Plaxco).
+  * Added support for Python 3.
 
 1.1 (2015-05-22)
 

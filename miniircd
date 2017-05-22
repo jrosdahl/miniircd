@@ -258,7 +258,7 @@ class Client(object):
             names = ""
             # Max length: reply prefix ":server_name(space)" plus CRLF in
             # the end.
-            names_max_len = 512 - (len(self.server.name) + 2 + 2)
+            names_max_len = 512 - (len(server.name) + 2 + 2)
             for name in sorted(x.nickname for x in channel.members):
                 if not names:
                     names = names_prefix + name

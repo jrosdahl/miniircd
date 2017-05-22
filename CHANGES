@@ -1,4 +1,4 @@
-Unreleased
+1.2 (2017-05-22)
 
   * Find certificate specified with relative path when using --daemon.
   * Handle quickly disconnecting client without crashing.

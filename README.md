@@ -102,9 +102,11 @@ Contributors
 ------------
 
 - Alex Wright
-- Jan Fuchs
-- Leandro Lucarella
+- Braxton Plaxco
 - Hanno Foest
+- Jan Fuchs
+- Julien Monnier
+- Leandro Lucarella
 - Martin Maney
 - Matt Baxter
 - Matt Behrens

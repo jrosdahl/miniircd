@@ -33,7 +33,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from optparse import OptionParser
 
-VERSION = "1.1"
+VERSION = "1.2"
 
 
 PY3 = sys.version_info[0] >= 3

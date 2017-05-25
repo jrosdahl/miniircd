@@ -1,3 +1,7 @@
+Unreleased
+
+  * Fixed Python 3 crash after disconnecting an unresponsive client.
+
 1.2 (2017-05-22)
 
   * Find certificate specified with relative path when using --daemon.

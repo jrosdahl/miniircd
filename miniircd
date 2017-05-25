@@ -910,7 +910,7 @@ class Server(object):
                     self.clients[x].socket_writable_notification()
             now = time.time()
             if last_aliveness_check + 10 < now:
-                for client in self.clients.values():
+                for client in list(self.clients.values()):
                     client.check_aliveness()
                 last_aliveness_check = now
 

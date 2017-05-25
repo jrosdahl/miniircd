@@ -1,4 +1,4 @@
-Unreleased
+1.2.1 (2017-05-25)
 
   * Fixed Python 3 crash after disconnecting an unresponsive client.
 

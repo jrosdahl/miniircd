@@ -52,6 +52,22 @@ else:
         return buf
 
 
+PY3 = sys.version_info[0] >= 3
+
+if PY3:
+    def buffer_to_socket(msg):
+        return msg.encode('utf-8')
+
+    def socket_to_buffer(buf):
+        return buf.decode('utf-8')
+else:
+    def buffer_to_socket(msg):
+        return msg
+
+    def socket_to_buffer(buf):
+        return buf
+
+
 def create_directory(path):
     if not os.path.isdir(path):
         os.makedirs(path)

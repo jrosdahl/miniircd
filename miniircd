@@ -304,6 +304,9 @@ class Client(object):
             online = [n for n in nicks if server.get_client(n)]
             self.reply("303 %s :%s" % (self.nickname, " ".join(online)))
 
+        def lusers_handler():
+            self.send_lusers()
+
         def join_handler():
             if len(arguments) < 1:
                 self.reply_461("JOIN")
@@ -575,6 +578,7 @@ class Client(object):
             "WALLOPS": wallops_handler,
             "WHO": who_handler,
             "WHOIS": whois_handler,
+            "LUSERS": lusers_handler,
         }
         server = self.server
         valid_channel_re = self.__valid_channelname_regexp

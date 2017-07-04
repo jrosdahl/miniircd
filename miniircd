@@ -135,7 +135,10 @@ class Client(object):
         self.nickname = None
         self.user = None
         self.realname = None
-        (self.host, self.port) = socket.getpeername()
+        if self.server.ipv6:
+            (self.host, self.port, _, _) = socket.getpeername()
+        else:
+            (self.host, self.port) = socket.getpeername()
         self.__timestamp = time.time()
         self.__readbuffer = ""
         self.__writebuffer = ""
@@ -685,6 +688,7 @@ class Server(object):
         self.ssl_pem_file = options.ssl_pem_file
         self.motdfile = options.motd
         self.verbose = options.verbose
+        self.ipv6 = options.ipv6
         self.debug = options.debug
         self.channel_log_dir = options.channel_log_dir
         self.chroot = options.chroot
@@ -707,7 +711,10 @@ class Server(object):
             self.ssl_pem_file = os.path.abspath(self.ssl_pem_file)
         # else: might exist in the chroot jail, so just continue
 
-        if options.listen:
+        if options.listen and self.ipv6:
+            self.address = socket.getaddrinfo(
+                    options.listen, None, proto=socket.IPPROTO_TCP)[0][4][0]
+        elif options.listen:
             self.address = socket.gethostbyname(options.listen)
         else:
             self.address = ""
@@ -821,7 +828,8 @@ class Server(object):
     def start(self):
         serversockets = []
         for port in self.ports:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s = socket.socket(socket.AF_INET6 if self.ipv6 else socket.AF_INET,
+                              socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 s.bind((self.address, port))
@@ -937,6 +945,10 @@ def main(argv):
         "-d", "--daemon",
         action="store_true",
         help="fork and become a daemon")
+    op.add_option(
+        "--ipv6",
+        action="store_true",
+        help="use IPv6")
     op.add_option(
         "--debug",
         action="store_true",

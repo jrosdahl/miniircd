@@ -43,7 +43,7 @@ if PY3:
         return msg.encode()
 
     def socket_to_buffer(buf):
-        return buf.decode()
+        return buf.decode(errors="ignore")
 else:
     def buffer_to_socket(msg):
         return msg

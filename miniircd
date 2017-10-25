@@ -1014,11 +1014,11 @@ def main(argv):
             metavar="U[:G]",
             help="change process user (and optionally group) after startup"
                  " (requires root)")
-    else:
-        op.chroot = False
-        op.setuid = False
 
     (options, args) = op.parse_args(argv[1:])
+    if os.name != "posix":
+        options.chroot = False
+        options.setuid = False
     if options.debug:
         options.verbose = True
     if options.ports is None:

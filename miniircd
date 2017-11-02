@@ -1043,8 +1043,8 @@ def main(argv):
         else:
             op.error("Specify a user, or user and group separated by a colon,"
                      " e.g. --setuid daemon, --setuid nobody:nobody")
-    if os.name == "posix" \
-            and (os.getuid() == 0 or os.getgid() == 0) and not options.setuid:
+    if os.name == "posix" and not options.setuid \
+            and (os.getuid() == 0 or os.getgid() == 0):
         op.error("Running this service as root is not recommended. Use the"
                  " --setuid option to switch to an unprivileged account after"
                  " startup. If you really intend to run as root, use"

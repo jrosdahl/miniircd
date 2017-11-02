@@ -1,6 +1,7 @@
 Unreleased
 
   * Added IPv6 support.
+  * Made fixes related to running on Windows.
 
 1.2.1 (2017-05-25)
 

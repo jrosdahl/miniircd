@@ -551,7 +551,7 @@ class Client(object):
                               server.name))
                 self.reply("319 %s %s :%s"
                            % (self.nickname, user.nickname,
-                              " ".join(user.channels)))
+                              "".join(x + " " for x in user.channels)))
                 self.reply("318 %s %s :End of WHOIS list"
                            % (self.nickname, user.nickname))
             else:

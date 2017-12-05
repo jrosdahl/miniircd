@@ -77,7 +77,7 @@ class ServerFixture(object):
             raise AssertionError("timeout while waiting for %r" % regexp)
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(1)  # Give the server 1 second to respond
-        line = self.connections[nick].readline().rstrip()
+        line = self.connections[nick].readline().rstrip("\r\n")
         signal.alarm(0)  # Cancel the alarm
         regexp = ("^%s$" % regexp).replace(r"local\S+", socket.getfqdn())
         m = re.match(regexp, line)
@@ -482,6 +482,26 @@ class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):
 
         self.send("apa", "MODE #fisk")
         self.expect("apa", r":local\S+ 324 apa #fisk \+k nors")
+
+    def test_whois(self):
+        self.send("apa", "WHOIS bepa")
+        self.expect("apa", r":local\S+ 401 apa bepa :No such nick")
+
+        self.send("apa", "WHOIS apa")
+        self.expect("apa", r":local\S+ 311 apa apa apa .+? \* :apa")
+        self.expect("apa", r":local\S+ 312 apa apa .+")
+        self.expect("apa", r":local\S+ 319 apa apa :#fisk #brugd ")
+        self.expect("apa", r":local\S+ 318 apa apa :End of WHOIS list")
+
+        self.send("apa", "PART #fisk,#brugd")
+        self.expect("apa", r":apa!apa@127.0.0.1 PART #fisk :apa")
+        self.expect("apa", r":apa!apa@127.0.0.1 PART #brugd :apa")
+
+        self.send("apa", "WHOIS apa")
+        self.expect("apa", r":local\S+ 311 apa apa apa .+? \* :apa")
+        self.expect("apa", r":local\S+ 312 apa apa .+")
+        self.expect("apa", r":local\S+ 319 apa apa :")
+        self.expect("apa", r":local\S+ 318 apa apa :End of WHOIS list")
 
 
 class TestPersistentState(ServerFixture):

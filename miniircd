@@ -686,6 +686,7 @@ class Server(object):
         self.ports = options.ports
         self.password = options.password
         self.ssl_pem_file = options.ssl_pem_file
+        self.key_file = options.key_file
         self.motdfile = options.motd
         self.verbose = options.verbose
         self.ipv6 = options.ipv6
@@ -898,7 +899,7 @@ class Server(object):
                                 conn,
                                 server_side=True,
                                 certfile=self.ssl_pem_file,
-                                keyfile=self.ssl_pem_file)
+                                keyfile=self.key_file)
                         except Exception as e:
                             self.print_error(
                                 "SSL error for connection from %s:%s: %s" % (
@@ -995,6 +996,10 @@ def main(argv):
         "-s", "--ssl-pem-file",
         metavar="FILE",
         help="enable SSL and use FILE as the .pem certificate+key")
+    op.add_option(
+        "-k","--key-file",
+        metavar="X",
+        help="path to private key")
     op.add_option(
         "--state-dir",
         metavar="X",

@@ -3,6 +3,7 @@ VERSION := $(shell sed -ne 's/^VERSION = "\(.*\)"/\1/p' miniircd)
 DISTFILES = miniircd COPYING README.md
 JAILDIR = /var/jail/miniircd
 JAILUSER = nobody
+CERTDIR = /tmp
 
 .PHONY: all
 all: test
@@ -30,3 +31,11 @@ jail:
 	mknod $(JAILDIR)/dev/urandom c 1 9
 	chmod 666 $(JAILDIR)/dev/*
 	chown $(JAILUSER) $(JAILDIR)
+
+.PHONY: cert
+cert:
+	@echo "Generating cert and key within $(CERTDIR)"
+	openssl genrsa -des3 -out $(CERTDIR)/server.orig.key 2048
+	openssl rsa -in $(CERTDIR)/server.orig.key -out $(CERTDIR)/server.key
+	openssl req -new -key $(CERTDIR)/server.key -out $(CERTDIR)/server.csr
+	openssl x509 -req -days 365 -in $(CERTDIR)/server.csr -signkey $(CERTDIR)/server.key -out $(CERTDIR)/server.crt

@@ -1,4 +1,5 @@
 JAILDIR = /srv/miniircd/jail
+DISTFILES=miniircd 
 JAILUSER = nobody
 INSTALL = /srv/miniircd
 CERTDIR = cert
@@ -7,7 +8,7 @@ CERTDIR = cert
 all: install
 
 .PHONY: install
-install: jail cert systemd
+install: jail cert copy systemd
 
 .PHONY: dist
 dist:
@@ -42,6 +43,7 @@ cert:
 copy:
 	@echo "copy binaries to $(INSTALL)"
 	cp $(DISTFILES) $(INSTALL)/.
+	chown -R $(JAILUSER) $(INSTALL)/*
 
 .PHONY: systemd
 systemd:

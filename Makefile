@@ -53,7 +53,7 @@ systemd:
 	@echo "After=network.service" >> /etc/systemd/system/irc.service
 	@echo "[Service]" >> /etc/systemd/system/irc.service
 	@echo "User=root" >> /etc/systemd/system/irc.service
-	@echo "Group=nogroup" >> /etc/systemd/system/irc.service
+	@echo "Group=root" >> /etc/systemd/system/irc.service
 	@echo "Type=simple" >> /etc/systemd/system/irc.service
 	@echo "WorkingDirectory=/srv/miniircd" >> /etc/systemd/system/irc.service
 	@echo "ExecStart=/usr/bin/python $(INSTALL)/miniircd --ssl-pem-file=/$(CERTDIR)/server.crt --key-file=/$(CERTDIR)/server.key --setuid=$(JAILUSER) --chroot=$(JAILDIR)" >> /etc/systemd/system/irc.service

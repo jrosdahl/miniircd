@@ -1067,5 +1067,5 @@ def main(argv):
     except KeyboardInterrupt:
         server.print_error("Interrupted.")
 
-
-main(sys.argv)
+if __name__ == "__main__":
+    main(sys.argv)

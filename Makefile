@@ -1,15 +1,14 @@
-VERSION := $(shell sed -ne 's/^VERSION = "\(.*\)"/\1/p' miniircd)
-
-DISTFILES = miniircd COPYING README.md
-JAILDIR = /var/jail/miniircd
+JAILDIR = /srv/miniircd/jail
+DISTFILES=miniircd 
 JAILUSER = nobody
+INSTALL = /srv/miniircd
+CERTDIR = cert
 
 .PHONY: all
-all: test
+all: install
 
-.PHONY: test
-test:
-	./test
+.PHONY: install
+install: jail cert copy systemd
 
 .PHONY: dist
 dist:
@@ -30,3 +29,42 @@ jail:
 	mknod $(JAILDIR)/dev/urandom c 1 9
 	chmod 666 $(JAILDIR)/dev/*
 	chown $(JAILUSER) $(JAILDIR)
+
+.PHONY: cert
+cert:
+	mkdir -p $(JAILDIR)/$(CERTDIR)
+	@echo "Generating cert and key within $(JAILDIR)/$(CERTDIR)"
+	openssl genrsa -des3 -out $(JAILDIR)/$(CERTDIR)/server.orig.key 2048
+	openssl rsa -in $(JAILDIR)/$(CERTDIR)/server.orig.key -out $(JAILDIR)/$(CERTDIR)/server.key
+	openssl req -new -key $(JAILDIR)/$(CERTDIR)/server.key -out $(JAILDIR)/$(CERTDIR)/server.csr
+	openssl x509 -req -days 365 -in $(JAILDIR)/$(CERTDIR)/server.csr -signkey $(JAILDIR)/$(CERTDIR)/server.key -out $(JAILDIR)/$(CERTDIR)/server.crt
+
+.PHONY: copy
+copy:
+	@echo "copy binaries to $(INSTALL)"
+	cp $(DISTFILES) $(INSTALL)/.
+	chown -R $(JAILUSER) $(INSTALL)/*
+
+.PHONY: systemd
+systemd:
+	@echo "generating Systemd-bullshit"
+	@echo "[Unit]" >> /etc/systemd/system/irc.service
+	@echo "Description=miniIRCd" >> /etc/systemd/system/irc.service
+	@echo "After=network.service" >> /etc/systemd/system/irc.service
+	@echo "[Service]" >> /etc/systemd/system/irc.service
+	@echo "User=root" >> /etc/systemd/system/irc.service
+	@echo "Group=root" >> /etc/systemd/system/irc.service
+	@echo "Type=simple" >> /etc/systemd/system/irc.service
+	@echo "WorkingDirectory=/srv/miniircd" >> /etc/systemd/system/irc.service
+	@echo "ExecStart=/usr/bin/python $(INSTALL)/miniircd --ssl-pem-file=/$(CERTDIR)/server.crt --key-file=/$(CERTDIR)/server.key --setuid=$(JAILUSER) --chroot=$(JAILDIR)" >> /etc/systemd/system/irc.service
+	@echo "ExecStop=/bin/kill -9 $MAINPID" >> /etc/systemd/system/irc.service
+	@echo "PIDFile=/srv/miniircd/.miniircd.pid" >> /etc/systemd/system/irc.service
+	@echo "RestartSec=15" >> /etc/systemd/system/irc.service
+	@echo "Restart=always" >> /etc/systemd/system/irc.service
+	@echo "" >> /etc/systemd/system/irc.service
+	@echo "[Install]" >> /etc/systemd/system/irc.service
+	@echo "WantedBy=multi-user.target" >> /etc/systemd/system/irc.service
+	systemctl daemon-reload
+	systemctl enable irc
+
+

@@ -197,7 +197,7 @@ class Client(object):
             if len(arguments) == 0:
                 self.reply_461("PASS")
             else:
-                if arguments[0].lower() == server.password:
+                if arguments[0] == server.password:
                     self.__handle_command = self.__registration_handler
                 else:
                     self.reply("464 :Password incorrect")

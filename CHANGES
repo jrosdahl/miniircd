@@ -3,6 +3,7 @@ Unreleased
   * Added IPv6 support.
   * Made fixes related to running on Windows.
   * Corrected WHOIS 319 reply according to the IRC standard.
+  * Treat server password as given instead of all-lowercase
 
 1.2.1 (2017-05-25)
 

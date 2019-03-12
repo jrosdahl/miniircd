@@ -139,6 +139,8 @@ class Client(object):
             (self.host, self.port, _, _) = socket.getpeername()
         else:
             (self.host, self.port) = socket.getpeername()
+        if self.server.cloak:
+            self.host = self.server.cloak
         self.__timestamp = time.time()
         self.__readbuffer = ""
         self.__writebuffer = ""
@@ -698,6 +700,7 @@ class Server(object):
         self.log_max_bytes = options.log_max_size * 1024 * 1024
         self.log_count = options.log_count
         self.logger = None
+        self.cloak = options.cloak
 
         if options.password_file:
             with open(options.password_file, "r") as fp:
@@ -1003,6 +1006,10 @@ def main(argv):
         "--verbose",
         action="store_true",
         help="be verbose (print some progress messages to stdout)")
+    op.add_option(
+        "--cloak",
+        metavar="X",
+        help="report X as the host for all clients")
     if os.name == "posix":
         op.add_option(
             "--chroot",

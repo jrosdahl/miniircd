@@ -1,6 +1,6 @@
 VERSION := $(shell sed -ne 's/^VERSION = "\(.*\)"/\1/p' miniircd)
 
-DISTFILES = miniircd COPYING README.md
+DISTFILES = miniircd LICENSE README.md
 JAILDIR = /var/jail/miniircd
 JAILUSER = nobody
 

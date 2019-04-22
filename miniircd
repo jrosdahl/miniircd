@@ -650,7 +650,7 @@ class Client(object):
         else:
             format = "[%s] <%s> %s\n"
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-        logname = channel.name.replace("_", "__").replace("/", "_")
+        logname = irc_lower(channel.name).replace("_", "__").replace("/", "_")
         fp = open("%s/%s.log" % (self.server.channel_log_dir, logname), "a")
         fp.write(format % (timestamp, self.nickname, message))
         fp.close()

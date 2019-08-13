@@ -741,6 +741,12 @@ class Server(object):
             self.print_error("Could not create PID file %r" % filename)
             sys.exit(1)
 
+    def remove_pid_file(self, filename):
+        try:
+            os.remove(filename)
+        except:
+            self.print_error("Could not remove PID file %r" % filename)
+
     def daemonize(self):
         try:
             pid = os.fork()
@@ -1073,6 +1079,9 @@ def main(argv):
         server.start()
     except KeyboardInterrupt:
         server.print_error("Interrupted.")
+    finally:
+        if options.pid_file:
+            server.remove_pid_file(options.pid_file)
 
 
 if __name__ == "__main__":

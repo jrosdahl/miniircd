@@ -917,7 +917,7 @@ class Server(object):
                         self.clients[conn] = Client(self, conn)
                         self.print_info("Accepted connection from %s:%s." % (
                             addr[0], addr[1]))
-                    except socket.error as e:
+                    except socket.error:
                         try:
                             conn.close()
                         except Exception:

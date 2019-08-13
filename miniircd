@@ -735,7 +735,7 @@ class Server(object):
     def make_pid_file(self, filename):
         try:
             fd = os.open(filename, os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o644)
-            os.write(fd, "%i\n" % os.getpid())
+            os.write(fd, b"%i\n" % os.getpid())
             os.close(fd)
         except:
             self.print_error("Could not create PID file %r" % filename)

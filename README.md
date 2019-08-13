@@ -105,6 +105,7 @@ Contributors
 - Braxton Plaxco
 - Hanno Foest
 - Jan Fuchs
+- Julien Castiaux
 - Julien Monnier
 - Leandro Lucarella
 - Martin Maney

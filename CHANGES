@@ -2,6 +2,8 @@ Unreleased
 
   * Channel log files are now named after the lowercase version of the channel
     name for consistency.
+  * Fixed creation of PID file when using Python 3.
+  * Made sure to remove the PID file on daemon exit.
 
 1.3 (2019-03-12)
 

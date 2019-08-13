@@ -115,7 +115,7 @@ class TwoClientsTwoChannelsFixture(ServerFixture):
 
             self.expect("apa", r":lemur!lemur@127.0.0.1 JOIN #fisk")
             self.expect("apa", r":lemur!lemur@127.0.0.1 JOIN #brugd")
-        except:
+        except Exception:
             self.shutDown()
             raise
 

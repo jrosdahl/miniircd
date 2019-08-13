@@ -737,14 +737,14 @@ class Server(object):
             fd = os.open(filename, os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o644)
             os.write(fd, b"%i\n" % os.getpid())
             os.close(fd)
-        except:
+        except Exception:
             self.print_error("Could not create PID file %r" % filename)
             sys.exit(1)
 
     def remove_pid_file(self, filename):
         try:
             os.remove(filename)
-        except:
+        except Exception:
             self.print_error("Could not remove PID file %r" % filename)
 
     def daemonize(self):
@@ -862,7 +862,7 @@ class Server(object):
         self.init_logging()
         try:
             self.run(serversockets)
-        except:
+        except Exception:
             if self.logger:
                 self.logger.exception("Fatal exception")
             raise
@@ -920,7 +920,7 @@ class Server(object):
                     except socket.error as e:
                         try:
                             conn.close()
-                        except:
+                        except Exception:
                             pass
             for x in owtd:
                 if x in self.clients:  # client may have been disconnected

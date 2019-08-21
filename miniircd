@@ -1071,6 +1071,8 @@ def main(argv):
             op.error("bad port: %r" % port)
     options.ports = ports
     server = Server(options)
+    if options.pid_file:
+        options.pid_file = os.path.abspath(options.pid_file)
     if options.daemon:
         server.daemonize()
     if options.pid_file:

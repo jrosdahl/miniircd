@@ -2,6 +2,7 @@
 
 set -e
 
-pyflakes miniircd test.py
-pep8 miniircd test.py
-nosetests
+mypy --disallow-incomplete-defs --disallow-untyped-calls --disallow-untyped-decorators --disallow-untyped-defs miniircd test.py
+pyflakes3 miniircd test.py
+pycodestyle miniircd test.py
+nosetests3

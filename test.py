@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import re
@@ -7,13 +7,17 @@ import signal
 import socket
 import tempfile
 import time
-from nose.tools import assert_not_in, assert_true
+from nose.tools import assert_not_in, assert_true  # type:ignore
+from types import FrameType
+from typing import Dict, IO, Optional
 
 SERVER_PORT = 16667
 
 
-class ServerFixture(object):
-    def setUp(self, persistent=False):
+class ServerFixture:
+    state_dir: Optional[str]
+
+    def setUp(self, persistent: bool = False) -> None:
         if persistent:
             self.state_dir = tempfile.mkdtemp()
         else:
@@ -27,13 +31,13 @@ class ServerFixture(object):
                 "--ports=%d" % SERVER_PORT,
             ]
             if persistent:
-                arguments.append("--state-dir=%s" % self.state_dir)
+                arguments.append(f"--state-dir={self.state_dir}")
             os.execv("./miniircd", arguments)
         # Parent.
         self.child_pid = pid
-        self.connections = {}  # nick -> fp
+        self.connections: Dict[str, IO] = {}  # nick -> fp
 
-    def connect(self, nick):
+    def connect(self, nick: str) -> None:
         assert_not_in(nick, self.connections)
         s = socket.socket()
         tries_left = 100
@@ -45,16 +49,16 @@ class ServerFixture(object):
                 tries_left -= 1
                 time.sleep(0.01)
         self.connections[nick] = s.makefile(mode="rw")
-        self.send(nick, "NICK %s" % nick)
-        self.send(nick, "USER %s * * %s" % (nick, nick))
-        self.expect(nick, r":local\S+ 001 %s :.*" % nick)
-        self.expect(nick, r":local\S+ 002 %s :.*" % nick)
-        self.expect(nick, r":local\S+ 003 %s :.*" % nick)
-        self.expect(nick, r":local\S+ 004 %s .*" % nick)
-        self.expect(nick, r":local\S+ 251 %s :.*" % nick)
-        self.expect(nick, r":local\S+ 422 %s :.*" % nick)
+        self.send(nick, f"NICK {nick}")
+        self.send(nick, f"USER {nick} * * {nick}")
+        self.expect(nick, rf":local\S+ 001 {nick} :.*")
+        self.expect(nick, rf":local\S+ 002 {nick} :.*")
+        self.expect(nick, rf":local\S+ 003 {nick} :.*")
+        self.expect(nick, rf":local\S+ 004 {nick} .*")
+        self.expect(nick, rf":local\S+ 251 {nick} :.*")
+        self.expect(nick, rf":local\S+ 422 {nick} :.*")
 
-    def shutDown(self):
+    def shutDown(self) -> None:
         os.kill(self.child_pid, signal.SIGTERM)
         os.waitpid(self.child_pid, 0)
         if self.state_dir:
@@ -63,34 +67,31 @@ class ServerFixture(object):
             except IOError:
                 pass
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.shutDown()
         for x in self.connections.values():
             x.close()
 
-    def send(self, nick, message):
+    def send(self, nick: str, message: str) -> None:
         self.connections[nick].write(message + "\r\n")
         self.connections[nick].flush()
 
-    def expect(self, nick, regexp):
-        def timeout_handler(signum, frame):
+    def expect(self, nick: str, regexp: str) -> None:
+        def timeout_handler(signum: int, frame: FrameType) -> None:
             raise AssertionError("timeout while waiting for %r" % regexp)
 
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(1)  # Give the server 1 second to respond
         line = self.connections[nick].readline().rstrip("\r\n")
         signal.alarm(0)  # Cancel the alarm
-        regexp = ("^%s$" % regexp).replace(r"local\S+", socket.getfqdn())
+        regexp = f"^{regexp}$".replace(r"local\S+", socket.getfqdn())
         m = re.match(regexp, line)
-        if m:
-            return m
-        else:
-            assert_true(False, "Regexp %r didn't match %r" % (regexp, line))
+        assert_true(m, f"Regexp {regexp!r} didn't match {line!r}")
 
 
 class TwoClientsTwoChannelsFixture(ServerFixture):
-    def setUp(self):
-        ServerFixture.setUp(self)
+    def setUp(self, persistent: bool = False) -> None:
+        super().setUp(persistent)
         try:
             self.connect("apa")
             self.send("apa", "JOIN #fisk,#brugd")
@@ -122,87 +123,87 @@ class TwoClientsTwoChannelsFixture(ServerFixture):
 
 
 class TestBasicStuff(ServerFixture):
-    def test_registration(self):
+    def test_registration(self) -> None:
         self.connect("apa")
 
-    def test_bad_ping(self):
+    def test_bad_ping(self) -> None:
         self.connect("apa")
         self.send("apa", "PING")
         self.expect("apa", r"\S+ 409 apa :.*")
 
-    def test_good_ping(self):
+    def test_good_ping(self) -> None:
         self.connect("apa")
         self.send("apa", "PING :fisk")
         self.expect("apa", r":local\S+ PONG \S+ :fisk")
 
-    def test_unknown_command(self):
+    def test_unknown_command(self) -> None:
         self.connect("apa")
         self.send("apa", "FISK fisk")
         self.expect("apa", r":local\S+ 421 apa FISK :.*")
 
-    def test_away(self):
+    def test_away(self) -> None:
         self.connect("apa")
         self.send("apa", "AWAY :gone fishing")
         # Currently no reply.
 
-    def test_argumentless_away(self):
+    def test_argumentless_away(self) -> None:
         self.connect("apa")
         self.send("apa", "AWAY")
         # Currently no reply.
 
-    def test_argumentless_join(self):
+    def test_argumentless_join(self) -> None:
         self.connect("apa")
         self.send("apa", "JOIN")
         self.expect("apa", r":local\S+ 461 apa JOIN :Not enough parameters")
 
-    def test_argumentless_list(self):
+    def test_argumentless_list(self) -> None:
         self.connect("apa")
         self.send("apa", "LIST")
         self.expect("apa", r":local\S+ 323 apa :End of LIST")
 
-    def test_argumentless_mode(self):
+    def test_argumentless_mode(self) -> None:
         self.connect("apa")
         self.send("apa", "MODE")
         self.expect("apa", r":local\S+ 461 apa MODE :Not enough parameters")
 
-    def test_argumentless_motd(self):
+    def test_argumentless_motd(self) -> None:
         self.connect("apa")
         self.send("apa", "MOTD")
         self.expect("apa", r":local\S+ 422 apa :MOTD File is missing")
 
-    def test_argumentless_nick(self):
+    def test_argumentless_nick(self) -> None:
         self.connect("apa")
         self.send("apa", "NICK")
         self.expect("apa", r":local\S+ 431 :No nickname given")
 
-    def test_argumentless_notice(self):
+    def test_argumentless_notice(self) -> None:
         self.connect("apa")
         self.send("apa", "NOTICE")
         self.expect("apa", r":local\S+ 411 apa :No recipient given \(NOTICE\)")
 
-    def test_privmsg_to_user(self):
+    def test_privmsg_to_user(self) -> None:
         self.connect("apa")
         self.connect("lemur")
         self.send("apa", "PRIVMSG lemur :fisk")
         self.expect("lemur", r":apa!apa@127.0.0.1 PRIVMSG lemur :fisk")
 
-    def test_privmsg_to_nobody(self):
+    def test_privmsg_to_nobody(self) -> None:
         self.connect("apa")
         self.send("apa", "PRIVMSG lemur :fisk")
         self.expect("apa", r":local\S+ 401 apa lemur :.*")
 
-    def test_notice_to_user(self):
+    def test_notice_to_user(self) -> None:
         self.connect("apa")
         self.connect("lemur")
         self.send("apa", "NOTICE lemur :fisk")
         self.expect("lemur", r":apa!apa@127.0.0.1 NOTICE lemur :fisk")
 
-    def test_notice_to_nobody(self):
+    def test_notice_to_nobody(self) -> None:
         self.connect("apa")
         self.send("apa", "NOTICE lemur :fisk")
         self.expect("apa", r":local\S+ 401 apa lemur :.*")
 
-    def test_join_and_part_one_user(self):
+    def test_join_and_part_one_user(self) -> None:
         self.connect("apa")
 
         self.send("apa", "LIST")
@@ -224,7 +225,7 @@ class TestBasicStuff(ServerFixture):
         self.send("apa", "LIST")
         self.expect("apa", r":\S+ 323 apa :.*")
 
-    def test_join_and_part_two_users(self):
+    def test_join_and_part_two_users(self) -> None:
         self.connect("apa")
         self.send("apa", "JOIN #fisk")
         self.expect("apa", r":apa!apa@127.0.0.1 JOIN #fisk")
@@ -244,7 +245,7 @@ class TestBasicStuff(ServerFixture):
         self.expect("lemur", r":lemur!lemur@127.0.0.1 PART #fisk :boa")
         self.expect("apa", r":lemur!lemur@127.0.0.1 PART #fisk :boa")
 
-    def test_join_and_name_many_users(self):
+    def test_join_and_name_many_users(self) -> None:
         base_nick = "A" * 49
         # :FQDN 353 nick = #fisk :
         base_len = len(socket.getfqdn()) + 66
@@ -252,26 +253,23 @@ class TestBasicStuff(ServerFixture):
         one_line = (512 - base_len) // 50
         nick_list_one = []
         for i in range(one_line):
-            long_nick = "%s%d" % (base_nick, i)
+            long_nick = f"{base_nick}{i}"
             nick_list_one.append(long_nick)
             self.connect(long_nick)
             self.send(long_nick, "JOIN #fisk")
             self.expect(
-                long_nick,
-                r":%(nick)s!%(nick)s@127.0.0.1 JOIN #fisk"
-                % {"nick": long_nick},
+                long_nick, rf":{long_nick}!{long_nick}@127.0.0.1 JOIN #fisk"
             )
-            self.expect(long_nick, r":local\S+ 331 %s #fisk :.*" % long_nick)
+            self.expect(long_nick, rf":local\S+ 331 {long_nick} #fisk :.*")
+            nicks = " ".join(nick_list_one)
             self.expect(
-                long_nick,
-                r":local\S+ 353 %s = #fisk :%s"
-                % (long_nick, " ".join(nick_list_one)),
+                long_nick, rf":local\S+ 353 {long_nick} = #fisk :{nicks}"
             )
-            self.expect(long_nick, r":local\S+ 366 %s #fisk :.*" % long_nick)
+            self.expect(long_nick, rf":local\S+ 366 {long_nick} #fisk :.*")
 
         nick_list_two = []
         for i in range(10 - one_line):
-            long_nick = "%s%d" % (base_nick, one_line + i)
+            long_nick = f"{base_nick}{one_line + i}"
             nick_list_two.append(long_nick)
             self.connect(long_nick)
             self.send(long_nick, "JOIN #fisk")
@@ -280,25 +278,23 @@ class TestBasicStuff(ServerFixture):
                 r":%(nick)s!%(nick)s@127.0.0.1 JOIN #fisk"
                 % {"nick": long_nick},
             )
-            self.expect(long_nick, r":local\S+ 331 %s #fisk :.*" % long_nick)
+            self.expect(long_nick, rf":local\S+ 331 {long_nick} #fisk :.*")
+            nicks_one = " ".join(nick_list_one)
             self.expect(
-                long_nick,
-                r":local\S+ 353 %s = #fisk :%s"
-                % (long_nick, " ".join(nick_list_one)),
+                long_nick, rf":local\S+ 353 {long_nick} = #fisk :{nicks_one}"
             )
+            nicks_two = " ".join(nick_list_two)
             self.expect(
-                long_nick,
-                r":local\S+ 353 %s = #fisk :%s"
-                % (long_nick, " ".join(nick_list_two)),
+                long_nick, rf":local\S+ 353 {long_nick} = #fisk :{nicks_two}"
             )
-            self.expect(long_nick, r":local\S+ 366 %s #fisk :.*" % long_nick)
+            self.expect(long_nick, rf":local\S+ 366 {long_nick} #fisk :.*")
 
-    def test_join_and_request_names(self):
+    def test_join_and_request_names(self) -> None:
         base_nick = "A" * 49
         # :FQDN 353 nick = #fisk :
         base_len = len(socket.getfqdn()) + 66
 
-        one_line = (512 - base_len) / 50
+        one_line = (512 - base_len) // 50
         nick_list_one = []
         for i in range(one_line):
             long_nick = "%s%d" % (base_nick, i)
@@ -386,7 +382,7 @@ class TestBasicStuff(ServerFixture):
         )
         self.expect(long_nick, r":local\S+ 366 %s #test :.*" % long_nick)
 
-    def test_ison(self):
+    def test_ison(self) -> None:
         self.connect("apa")
         self.send("apa", "ISON apa lemur")
         self.expect("apa", r":local\S+ 303 apa :apa")
@@ -395,7 +391,7 @@ class TestBasicStuff(ServerFixture):
         self.send("apa", "ISON apa lemur")
         self.expect("apa", r":local\S+ 303 apa :apa lemur")
 
-    def test_lusers(self):
+    def test_lusers(self) -> None:
         self.connect("apa")
         self.send("apa", "lusers")
         self.expect(
@@ -406,19 +402,19 @@ class TestBasicStuff(ServerFixture):
 
 
 class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):
-    def test_privmsg_to_channel(self):
+    def test_privmsg_to_channel(self) -> None:
         self.send("apa", "PRIVMSG #fisk :lax")
         self.expect("lemur", r":apa!apa@127.0.0.1 PRIVMSG #fisk :lax")
 
-    def test_notice_to_channel(self):
+    def test_notice_to_channel(self) -> None:
         self.send("apa", "NOTICE #fisk :lax")
         self.expect("lemur", r":apa!apa@127.0.0.1 NOTICE #fisk :lax")
 
-    def test_get_empty_topic(self):
+    def test_get_empty_topic(self) -> None:
         self.send("apa", "TOPIC #fisk")
         self.expect("apa", r":local\S+ 331 apa #fisk :.*")
 
-    def test_set_topic(self):
+    def test_set_topic(self) -> None:
         self.send("apa", "TOPIC #fisk :sill")
         self.expect("apa", r":apa!apa@127.0.0.1 TOPIC #fisk :sill")
         self.expect("lemur", r":apa!apa@127.0.0.1 TOPIC #fisk :sill")
@@ -428,14 +424,14 @@ class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):
         self.expect("apa", r":local\S+ 322 apa #fisk 2 :sill")
         self.expect("apa", r":\S+ 323 apa :.*")
 
-    def test_get_topic(self):
+    def test_get_topic(self) -> None:
         self.send("apa", "TOPIC #fisk :sill")
         self.expect("apa", r":apa!apa@127.0.0.1 TOPIC #fisk :sill")
         self.expect("lemur", r":apa!apa@127.0.0.1 TOPIC #fisk :sill")
         self.send("lemur", "TOPIC #fisk")
         self.expect("lemur", r":local\S+ 332 lemur #fisk :sill")
 
-    def test_channel_key(self):
+    def test_channel_key(self) -> None:
         self.send("apa", "MODE #fisk +k nors")
         self.expect("apa", r":apa!apa@127.0.0.1 MODE #fisk \+k nors")
         self.expect("lemur", r":apa!apa@127.0.0.1 MODE #fisk \+k nors")
@@ -463,7 +459,7 @@ class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):
         self.send("apa", "MODE #fisk")
         self.expect("apa", r":local\S+ 324 apa #fisk \+k nors")
 
-    def test_whois(self):
+    def test_whois(self) -> None:
         self.send("apa", "WHOIS bepa")
         self.expect("apa", r":local\S+ 401 apa bepa :No such nick")
 
@@ -485,10 +481,10 @@ class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):
 
 
 class TestPersistentState(ServerFixture):
-    def setUp(self):
-        ServerFixture.setUp(self, True)
+    def setUp(self, persistent: bool = True) -> None:
+        super().setUp(persistent)
 
-    def test_persistent_channel_state(self):
+    def test_persistent_channel_state(self) -> None:
         self.connect("apa")
 
         self.send("apa", "JOIN #fisk")

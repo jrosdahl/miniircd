@@ -28,12 +28,13 @@ import string
 import sys
 import tempfile
 import time
+
+from argparse import ArgumentParser, Namespace
 from datetime import datetime
+from logging import Logger
 from logging.handlers import RotatingFileHandler
-from optparse import OptionParser, Values
 from socket import socket as Socket
 from typing import Any, Collection, Dict, List, Optional, Sequence, Set
-from logging import Logger
 
 VERSION = "1.3"
 
@@ -788,26 +789,26 @@ class Client:
 
 
 class Server:
-    def __init__(self, options: Values) -> None:
-        self.ports = options.ports
-        self.password = options.password
-        self.ssl_pem_file = options.ssl_pem_file
-        self.motdfile = options.motd
-        self.verbose = options.verbose
-        self.ipv6 = options.ipv6
-        self.debug = options.debug
-        self.channel_log_dir = options.channel_log_dir
-        self.chroot = options.chroot
-        self.setuid = options.setuid
-        self.state_dir = options.state_dir
-        self.log_file = options.log_file
-        self.log_max_bytes = options.log_max_size * 1024 * 1024
-        self.log_count = options.log_count
+    def __init__(self, args: Namespace) -> None:
+        self.ports = args.ports
+        self.password = args.password
+        self.ssl_pem_file = args.ssl_pem_file
+        self.motdfile = args.motd
+        self.verbose = args.verbose
+        self.ipv6 = args.ipv6
+        self.debug = args.debug
+        self.channel_log_dir = args.channel_log_dir
+        self.chroot = args.chroot
+        self.setuid = args.setuid
+        self.state_dir = args.state_dir
+        self.log_file = args.log_file
+        self.log_max_bytes = args.log_max_size * 1024 * 1024
+        self.log_count = args.log_count
         self.logger: Optional[Logger] = None
-        self.cloak = options.cloak
+        self.cloak = args.cloak
 
-        if options.password_file:
-            with open(options.password_file, "r") as fp:
+        if args.password_file:
+            with open(args.password_file, "r") as fp:
                 self.password = fp.read().strip("\n")
 
         if self.ssl_pem_file:
@@ -818,12 +819,12 @@ class Server:
             self.ssl_pem_file = os.path.abspath(self.ssl_pem_file)
         # else: might exist in the chroot jail, so just continue
 
-        if options.listen and self.ipv6:
+        if args.listen and self.ipv6:
             self.address = socket.getaddrinfo(
-                options.listen, None, proto=socket.IPPROTO_TCP
+                args.listen, None, proto=socket.IPPROTO_TCP
             )[0][4][0]
-        elif options.listen:
-            self.address = socket.gethostbyname(options.listen)
+        elif args.listen:
+            self.address = socket.gethostbyname(args.listen)
         else:
             self.address = ""
         server_name_limit = 63  # From the RFC.
@@ -1062,51 +1063,51 @@ def irc_lower(s: bytes) -> bytes:
 
 
 def main(argv: Sequence[str]) -> None:
-    op = OptionParser(
-        version=VERSION,
+    ap = ArgumentParser(
         description="miniircd is a small and limited IRC server.",
     )
-    op.add_option(
+    ap.add_argument("--version", action="version", version=VERSION)
+    ap.add_argument(
         "--channel-log-dir",
         metavar="X",
         help="store channel log in directory X",
     )
-    op.add_option(
+    ap.add_argument(
         "-d", "--daemon", action="store_true", help="fork and become a daemon"
     )
-    op.add_option("--ipv6", action="store_true", help="use IPv6")
-    op.add_option(
+    ap.add_argument("--ipv6", action="store_true", help="use IPv6")
+    ap.add_argument(
         "--debug", action="store_true", help="print debug messages to stdout"
     )
-    op.add_option(
+    ap.add_argument(
         "--listen", metavar="X", help="listen on specific IP address X"
     )
-    op.add_option(
+    ap.add_argument(
         "--log-count",
         metavar="X",
         default=10,
-        type="int",
+        type=int,
         help="keep X log files; default: %default",
     )
-    op.add_option("--log-file", metavar="X", help="store log in file X")
-    op.add_option(
+    ap.add_argument("--log-file", metavar="X", help="store log in file X")
+    ap.add_argument(
         "--log-max-size",
         metavar="X",
         default=10,
-        type="int",
+        type=int,
         help="set maximum log file size to X MiB; default: %default MiB",
     )
-    op.add_option(
+    ap.add_argument(
         "--motd", metavar="X", help="display file X as message of the day"
     )
-    op.add_option("--pid-file", metavar="X", help="write PID to file X")
-    op.add_option(
+    ap.add_argument("--pid-file", metavar="X", help="write PID to file X")
+    ap.add_argument(
         "-p",
         "--password",
         metavar="X",
         help="require connection password X; default: no password",
     )
-    op.add_option(
+    ap.add_argument(
         "--password-file",
         metavar="X",
         help=(
@@ -1114,86 +1115,86 @@ def main(argv: Sequence[str]) -> None:
             " default: no password"
         ),
     )
-    op.add_option(
+    ap.add_argument(
         "--ports",
         metavar="X",
         help="listen to ports X (a list separated by comma or whitespace);"
         " default: 6667 or 6697 if SSL is enabled",
     )
-    op.add_option(
+    ap.add_argument(
         "-s",
         "--ssl-pem-file",
         metavar="FILE",
         help="enable SSL and use FILE as the .pem certificate+key",
     )
-    op.add_option(
+    ap.add_argument(
         "--state-dir",
         metavar="X",
         help="save persistent channel state (topic, key) in directory X",
     )
-    op.add_option(
+    ap.add_argument(
         "--verbose",
         action="store_true",
         help="be verbose (print some progress messages to stdout)",
     )
-    op.add_option(
+    ap.add_argument(
         "--cloak", metavar="X", help="report X as the host for all clients"
     )
     if os.name == "posix":
-        op.add_option(
+        ap.add_argument(
             "--chroot",
             metavar="X",
             help="change filesystem root to directory X after startup"
             " (requires root)",
         )
-        op.add_option(
+        ap.add_argument(
             "--setuid",
             metavar="U[:G]",
             help="change process user (and optionally group) after startup"
             " (requires root)",
         )
 
-    options, args = op.parse_args(argv[1:])
+    args = ap.parse_args()
     if os.name != "posix":
-        options.chroot = False
-        options.setuid = False
-    if options.debug:
-        options.verbose = True
-    if options.ports is None:
-        if options.ssl_pem_file is None:
-            options.ports = "6667"
+        args.chroot = False
+        args.setuid = False
+    if args.debug:
+        args.verbose = True
+    if args.ports is None:
+        if args.ssl_pem_file is None:
+            args.ports = "6667"
         else:
-            options.ports = "6697"
-    if options.chroot and os.getuid() != 0:
-        op.error("Must be root to use --chroot")
-    if options.setuid:
+            args.ports = "6697"
+    if args.chroot and os.getuid() != 0:
+        ap.error("Must be root to use --chroot")
+    if args.setuid:
         from pwd import getpwnam
         from grp import getgrnam
 
         if os.getuid() != 0:
-            op.error("Must be root to use --setuid")
-        matches = options.setuid.split(":")
+            ap.error("Must be root to use --setuid")
+        matches = args.setuid.split(":")
         if len(matches) == 2:
-            options.setuid = (
+            args.setuid = (
                 getpwnam(matches[0]).pw_uid,
                 getgrnam(matches[1]).gr_gid,
             )
         elif len(matches) == 1:
-            options.setuid = (
+            args.setuid = (
                 getpwnam(matches[0]).pw_uid,
                 getpwnam(matches[0]).pw_gid,
             )
         else:
-            op.error(
+            ap.error(
                 "Specify a user, or user and group separated by a colon,"
                 " e.g. --setuid daemon, --setuid nobody:nobody"
             )
     if (
         os.name == "posix"
-        and not options.setuid
+        and not args.setuid
         and (os.getuid() == 0 or os.getgid() == 0)
     ):
-        op.error(
+        ap.error(
             "Running this service as root is not recommended. Use the"
             " --setuid option to switch to an unprivileged account after"
             " startup. If you really intend to run as root, use"
@@ -1201,26 +1202,26 @@ def main(argv: Sequence[str]) -> None:
         )
 
     ports = []
-    for port in re.split(r"[,\s]+", options.ports):
+    for port in re.split(r"[,\s]+", args.ports):
         try:
             ports.append(int(port))
         except ValueError:
-            op.error("bad port: %r" % port)
-    options.ports = ports
-    server = Server(options)
-    if options.pid_file:
-        options.pid_file = os.path.abspath(options.pid_file)
-    if options.daemon:
+            ap.error("bad port: %r" % port)
+    args.ports = ports
+    server = Server(args)
+    if args.pid_file:
+        args.pid_file = os.path.abspath(args.pid_file)
+    if args.daemon:
         server.daemonize()
-    if options.pid_file:
-        server.make_pid_file(options.pid_file)
+    if args.pid_file:
+        server.make_pid_file(args.pid_file)
     try:
         server.start()
     except KeyboardInterrupt:
         server.print_error("Interrupted.")
     finally:
-        if options.pid_file:
-            server.remove_pid_file(options.pid_file)
+        if args.pid_file:
+            server.remove_pid_file(args.pid_file)
 
 
 if __name__ == "__main__":

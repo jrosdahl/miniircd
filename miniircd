@@ -675,8 +675,9 @@ class Client:
     def socket_readable_notification(self) -> None:
         try:
             data = self.socket.recv(2 ** 10)
-            host = self.host.decode(errors="ignore")
-            self.server.print_debug(f"[{host}:{self.port}] -> {data!r}")
+            if self.server.debug:
+                host = self.host.decode(errors="ignore")
+                self.server.print_debug(f"[{host}:{self.port}] -> {data!r}")
             quitmsg = "EOT"
         except socket.error as e:
             data = b""
@@ -692,11 +693,11 @@ class Client:
     def socket_writable_notification(self) -> None:
         try:
             sent = self.socket.send(self.__writebuffer)
-            host = self.host.decode(errors="ignore")
-            head = self.__writebuffer[:sent]
-            tail = self.__writebuffer[sent:]
-            self.server.print_debug(f"[{host}:{self.port}] <- {head!r}")
-            self.__writebuffer = tail
+            if self.server.debug:
+                head = self.__writebuffer[:sent]
+                host = self.host.decode(errors="ignore")
+                self.server.print_debug(f"[{host}:{self.port}] <- {head!r}")
+            self.__writebuffer = self.__writebuffer[sent:]
         except socket.error as x:
             self.disconnect(str(x))
 
@@ -906,8 +907,8 @@ class Server:
         if self.debug:
             print(msg)
             sys.stdout.flush()
-        if self.logger:
-            self.logger.debug(msg)
+            if self.logger:
+                self.logger.debug(msg)
 
     def print_error(self, msg: str) -> None:
         sys.stderr.write(f"{msg}\n")

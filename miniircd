@@ -129,15 +129,12 @@ class Client:
         self.nickname = b""
         self.user = b""
         self.realname = b""
-        self.host: bytes
         if self.server.ipv6:
             host, port, _, _ = socket.getpeername()
-            self.host = host.encode()
-            self.port = port
         else:
             host, port = socket.getpeername()
-            self.host = host.encode()
-            self.port = port
+        self.host = host.encode()
+        self.port = port
         if self.server.cloak:
             self.host = self.server.cloak
         self.__timestamp = time.time()

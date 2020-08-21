@@ -1085,7 +1085,7 @@ def main(argv: Sequence[str]) -> None:
         metavar="X",
         default=10,
         type=int,
-        help="keep X log files; default: %default",
+        help="keep X log files; default: %(default)s",
     )
     ap.add_argument("--log-file", metavar="X", help="store log in file X")
     ap.add_argument(
@@ -1093,7 +1093,7 @@ def main(argv: Sequence[str]) -> None:
         metavar="X",
         default=10,
         type=int,
-        help="set maximum log file size to X MiB; default: %default MiB",
+        help="set maximum log file size to X MiB; default: %(default)s MiB",
     )
     ap.add_argument(
         "--motd", metavar="X", help="display file X as message of the day"

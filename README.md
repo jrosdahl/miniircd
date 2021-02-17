@@ -45,6 +45,19 @@ Installation
 None. Just run `./miniircd --help` (or `python3 miniircd --help`) to get some
 help.
 
+You can install from PyPI if you want:
+
+    # pip3 install miniircd
+
+If you install as root you can run from anywhere:
+
+    # miniircd --help
+
+If you don't install as root it may not be in your path, but you can invoke it
+as a module from anywhere:
+
+    # python3 -m miniircd --help
+
 
 Using `--chroot` and `--setuid`
 -------------------------------
@@ -90,6 +103,34 @@ should look something like this:
     drwxr-xr-x 3 nobody root   4096 Jun 10 16:20 ..
     crw-rw-rw- 1 root   root   1, 3 Jun 10 16:16 null
     crw-rw-rw- 1 root   root   1, 9 Jun 10 16:19 urandom
+
+
+Development
+-----------
+
+To install in development mode with all required development and testing
+dependencies:
+
+    # pip3 install -e .[dev]
+
+To run the tests:
+
+    # ./test
+
+
+Packaging
+---------
+
+To build the wheel, first install in development mode with `[dev]` extras. This
+will ensure that pep517 and twine are installed.
+
+Build the wheel with pep517's build command:
+
+    # python3 -m pep517.build .
+
+Upload new the version to PyPI:
+
+    # python3 -m twine upload dist/*
 
 
 License

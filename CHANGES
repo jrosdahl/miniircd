@@ -1,3 +1,7 @@
+Work in progress
+
+  * Added --ssl-cert-file and --ssl-key-file arguments.
+
 2.0 (2020-07-16)
 
   * Dropped Python 2 support.

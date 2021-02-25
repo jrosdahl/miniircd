@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2003-2020 Joel Rosdahl
+# Copyright (C) 2003-2021 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -790,7 +790,8 @@ class Server:
     def __init__(self, args: Namespace) -> None:
         self.ports = args.ports
         self.password = args.password
-        self.ssl_pem_file = args.ssl_pem_file
+        self.ssl_cert_file = args.ssl_cert_file
+        self.ssl_key_file = args.ssl_key_file
         self.motdfile = args.motd
         self.verbose = args.verbose
         self.ipv6 = args.ipv6
@@ -804,17 +805,20 @@ class Server:
         self.log_count = args.log_count
         self.logger: Optional[logging.Logger] = None
         self.cloak = args.cloak
+        self.name: bytes
 
         if args.password_file:
             with open(args.password_file, "r") as fp:
                 self.password = fp.read().strip("\n")
 
-        if self.ssl_pem_file:
+        if self.ssl_key_file:
             self.ssl = __import__("ssl")
 
-        # Find certificate after daemonization if path is relative:
-        if self.ssl_pem_file and os.path.exists(self.ssl_pem_file):
-            self.ssl_pem_file = os.path.abspath(self.ssl_pem_file)
+        # Find key/cert files after daemonization if path is relative:
+        if self.ssl_cert_file and os.path.exists(self.ssl_cert_file):
+            self.ssl_cert_file = os.path.abspath(self.ssl_cert_file)
+        if self.ssl_key_file and os.path.exists(self.ssl_key_file):
+            self.ssl_key_file = os.path.abspath(self.ssl_key_file)
         # else: might exist in the chroot jail, so just continue
 
         if args.listen and self.ipv6:
@@ -1016,13 +1020,13 @@ class Server:
                     self.clients[x].socket_readable_notification()
                 else:
                     conn, addr = x.accept()
-                    if self.ssl_pem_file:
+                    if self.ssl_key_file:
                         try:
                             conn = self.ssl.wrap_socket(
                                 conn,
                                 server_side=True,
-                                certfile=self.ssl_pem_file,
-                                keyfile=self.ssl_pem_file,
+                                certfile=self.ssl_cert_file,
+                                keyfile=self.ssl_key_file,
                             )
                         except Exception as e:
                             self.print_error(
@@ -1120,10 +1124,20 @@ def main(argv: Sequence[str]) -> None:
         " default: 6667 or 6697 if SSL is enabled",
     )
     ap.add_argument(
+        "--ssl-cert-file",
+        metavar="FILE",
+        help="enable SSL with PEM certificate in FILE",
+    )
+    ap.add_argument(
+        "--ssl-key-file",
+        metavar="FILE",
+        help="enable SSL with PEM key in FILE",
+    )
+    ap.add_argument(
         "-s",
         "--ssl-pem-file",
         metavar="FILE",
-        help="enable SSL and use FILE as the .pem certificate+key",
+        help="enable SSL with key and certificate combined in FILE",
     )
     ap.add_argument(
         "--state-dir",
@@ -1153,13 +1167,24 @@ def main(argv: Sequence[str]) -> None:
         )
 
     args = ap.parse_args()
+
+    if bool(args.ssl_cert_file) != bool(args.ssl_key_file):
+        args.error("Must specify both --ssl-cert-file and --ssl-key-file")
+    if args.ssl_pem_file:
+        if args.ssl_cert_file:
+            args.error(
+                "Cannot specify both --ssl-pem-file and --ssl-cert-file"
+            )
+        args.ssl_cert_file = args.ssl_pem_file
+        args.ssl_key_file = args.ssl_pem_file
+
     if os.name != "posix":
         args.chroot = False
         args.setuid = False
     if args.debug:
         args.verbose = True
     if args.ports is None:
-        if args.ssl_pem_file is None:
+        if args.ssl_key_file is None:
             args.ports = "6667"
         else:
             args.ports = "6697"

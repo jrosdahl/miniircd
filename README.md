@@ -8,6 +8,7 @@ miniircd is a small and limited IRC server written in Python. Despite its size,
 it is a functional alternative to a full-blown ircd for private or internal
 use. Installation is simple; no configuration is required.
 
+
 Features
 --------
 
@@ -18,6 +19,7 @@ Features
 * No ident lookup (so that people behind firewalls that filter the ident port
   without sending NACK can connect without long timeouts).
 * Reasonably secure when used with --chroot and --setuid.
+
 
 Limitations
 -----------
@@ -30,20 +32,22 @@ Limitations
 * No reverse DNS lookup.
 * No other mechanism to reject clients than requiring a password.
 
+
 Requirements
 ------------
 
-Python 3.6 or newer. Get it at https://www.python.org.
+Python 3.6 or newer. Get it at <https://www.python.org>.
 
 
 Installation
 ------------
 
-None. Just run "./miniircd --help" (or "python miniircd --help") to get some
+None. Just run `./miniircd --help` (or `python3 miniircd --help`) to get some
 help.
 
-Using --chroot and --setuid
----------------------------
+
+Using `--chroot` and `--setuid`
+-------------------------------
 
 In order to use the --chroot or --setuid options, you must be using an OS that
 supports these functions (most \*nixes), and you must start the server as root.
@@ -53,12 +57,12 @@ instead of the user who launched miniircd.
 
 To create a new chroot jail for miniircd, edit the Makefile and change JAILDIR
 and JAILUSER to suit your needs, then run ``make jail`` as root. If you have a
-motd file or an SSL pem file, you'll need to put them in the jail as well:
+motd file or an SSL PEM file, you'll need to put them in the jail as well:
 
     # cp miniircd.pem motd.txt /var/jail/miniircd
 
-Remember to specify the paths for --state-dir, --log-dir, --motd and
---ssl-pem-file from within the jail, e.g.:
+Remember to specify the paths for `--state-dir`, `--log-dir`, `--motd` and
+`--ssl-pem-file` from within the jail, e.g.:
 
     # miniircd --state-dir=/ --log-dir=/ --motd=/motd.txt --setuid=nobody \
           --ssl-pem-file=/miniircd.pem --chroot=/var/jail/miniircd
@@ -87,15 +91,18 @@ should look something like this:
     crw-rw-rw- 1 root   root   1, 3 Jun 10 16:16 null
     crw-rw-rw- 1 root   root   1, 9 Jun 10 16:19 urandom
 
+
 License
 -------
 
 GNU General Public License version 2 or later.
 
+
 Primary author
 --------------
 
 - Joel Rosdahl <joel@rosdahl.net>
+
 
 Contributors
 ------------

@@ -114,6 +114,7 @@ Contributors
 - Julien Castiaux
 - Julien Monnier
 - Leandro Lucarella
+- Leonardo Taccari
 - Martin Maney
 - Matt Baxter
 - Matt Behrens

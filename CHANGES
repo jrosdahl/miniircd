@@ -1,4 +1,4 @@
-Work in progress
+2.1 (2021-03-08)
 
   * Added --ssl-cert-file and --ssl-key-file arguments.
   * Fixed formatting of default parameter in help messages.

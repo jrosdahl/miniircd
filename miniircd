@@ -36,7 +36,7 @@ from typing import Any, Collection, Dict, List, Optional, Sequence, Set
 
 Socket = socket.socket
 
-VERSION = "2.0"
+VERSION = "2.1"
 
 
 def create_directory(path: str) -> None:

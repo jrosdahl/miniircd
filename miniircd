@@ -1064,7 +1064,7 @@ def irc_lower(s: bytes) -> bytes:
     return s.translate(_ircstring_translation)
 
 
-def main(argv: Sequence[str]) -> None:
+def main() -> None:
     ap = ArgumentParser(
         description="miniircd is a small and limited IRC server.",
     )
@@ -1248,4 +1248,4 @@ def main(argv: Sequence[str]) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()

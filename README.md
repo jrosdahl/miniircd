@@ -42,43 +42,57 @@ Python 3.6 or newer. Get it at <https://www.python.org>.
 Installation
 ------------
 
-None. Just run `./miniircd --help` (or `python3 miniircd --help`) to get some
-help.
+No special installation needed: Just clone the repository and execute miniircd:
 
-You can install from PyPI if you want:
+    git clone https://github.com/jrosdahl/miniircd.git
+    cd miniircd
+    ./miniircd --help
 
-    # pip3 install miniircd
+If you do want to install miniircd, there are several options:
 
-If you install as root you can run from anywhere:
+1. Clone the repository and copy the executable file to a directory in PATH:
 
-    # miniircd --help
+        git clone https://github.com/jrosdahl/miniircd.git
+        cd miniircd
+        cp miniircd /usr/local/bin  # or some other directory in your PATH
 
-If you don't install as root it may not be in your path, but you can invoke it
-as a module from anywhere:
+   You can then execute the program like this:
 
-    # python3 -m miniircd --help
+        miniircd --help
+
+2. Install miniircd as a package from the [miniircd PyPI project].
+
+   You can then execute the program with
+
+        miniircd --help
+
+   or as a module like this:
+
+        python3 -m miniircd --help
+
+[miniircd PyPI project]: https://pypi.org/project/miniircd/
 
 
 Using `--chroot` and `--setuid`
 -------------------------------
 
-In order to use the --chroot or --setuid options, you must be using an OS that
-supports these functions (most \*nixes), and you must start the server as root.
-These options limit the daemon process to a small subset of the filesystem,
-running with the privileges of the specified user (ideally unprivileged)
-instead of the user who launched miniircd.
+In order to use the `--chroot` or `--setuid` options, you must be using an OS
+that supports these functions (most Unix-like systems), and you must start the
+server as root. These options limit the daemon process to a small subset of the
+filesystem, running with the privileges of the specified user (ideally
+unprivileged) instead of the user who launched miniircd.
 
 To create a new chroot jail for miniircd, edit the Makefile and change JAILDIR
 and JAILUSER to suit your needs, then run ``make jail`` as root. If you have a
 motd file or an SSL PEM file, you'll need to put them in the jail as well:
 
-    # cp miniircd.pem motd.txt /var/jail/miniircd
+    cp miniircd.pem motd.txt /var/jail/miniircd
 
 Remember to specify the paths for `--state-dir`, `--log-dir`, `--motd` and
 `--ssl-pem-file` from within the jail, e.g.:
 
-    # miniircd --state-dir=/ --log-dir=/ --motd=/motd.txt --setuid=nobody \
-          --ssl-pem-file=/miniircd.pem --chroot=/var/jail/miniircd
+    miniircd --state-dir=/ --log-dir=/ --motd=/motd.txt --setuid=nobody \
+        --ssl-pem-file=/miniircd.pem --chroot=/var/jail/miniircd
 
 Make sure your jail is writable by whatever user/group you are running the
 server as. Also, keep your jail clean. Ideally it should only contain the files

@@ -1,6 +1,9 @@
 Work in progress
 
   * Added --ssl-cert-file and --ssl-key-file arguments.
+  * Fixed formatting of default parameter in help messages.
+  * Debug log strings are now only constructed in debug mode.
+  * Added PyPI packaging.
 
 2.0 (2020-07-16)
 

@@ -4,7 +4,7 @@ Development
 To install in development mode with all required development and testing
 dependencies:
 
-    # pip3 install -e .[dev]
+    # pip3 install -e '.[dev]'
 
 To run the tests:
 

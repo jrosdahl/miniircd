@@ -88,11 +88,11 @@ motd file or an SSL PEM file, you'll need to put them in the jail as well:
 
     cp miniircd.pem motd.txt /var/jail/miniircd
 
-Remember to specify the paths for `--state-dir`, `--log-dir`, `--motd` and
-`--ssl-pem-file` from within the jail, e.g.:
+Remember to specify the paths for `--state-dir`, `--channel-log-dir`, `--motd`
+and `--ssl-pem-file` from within the jail, e.g.:
 
-    miniircd --state-dir=/ --log-dir=/ --motd=/motd.txt --setuid=nobody \
-        --ssl-pem-file=/miniircd.pem --chroot=/var/jail/miniircd
+    miniircd --state-dir=/ --channel-log-dir=/ --motd=/motd.txt \
+        --setuid=nobody --ssl-pem-file=/miniircd.pem --chroot=/var/jail/miniircd
 
 Make sure your jail is writable by whatever user/group you are running the
 server as. Also, keep your jail clean. Ideally it should only contain the files

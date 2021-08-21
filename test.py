@@ -17,7 +17,9 @@ SERVER_PORT = 16667
 class ServerFixture:
     state_dir: Optional[str]
 
-    def setUp(self, persistent: bool = False) -> None:
+    def setUp(
+        self, persistent: bool = False, password: Optional[str] = None
+    ) -> None:
         if persistent:
             self.state_dir = tempfile.mkdtemp()
         else:
@@ -32,12 +34,14 @@ class ServerFixture:
             ]
             if persistent:
                 arguments.append(f"--state-dir={self.state_dir}")
+            if password:
+                arguments.append(f"--password={password}")
             os.execv("./miniircd", arguments)
         # Parent.
         self.child_pid = pid
         self.connections: Dict[str, IO] = {}  # nick -> fp
 
-    def connect(self, nick: str) -> None:
+    def connect(self, nick: str, password: Optional[str] = None) -> None:
         assert_not_in(nick, self.connections)
         s = socket.socket()
         tries_left = 100
@@ -49,6 +53,8 @@ class ServerFixture:
                 tries_left -= 1
                 time.sleep(0.01)
         self.connections[nick] = s.makefile(mode="rw")
+        if password is not None:
+            self.send(nick, f"PASS {password}")
         self.send(nick, f"NICK {nick}")
         self.send(nick, f"USER {nick} * * {nick}")
         self.expect(nick, rf":local\S+ 001 {nick} :.*")
@@ -90,7 +96,9 @@ class ServerFixture:
 
 
 class TwoClientsTwoChannelsFixture(ServerFixture):
-    def setUp(self, persistent: bool = False) -> None:
+    def setUp(
+        self, persistent: bool = False, password: Optional[str] = None
+    ) -> None:
         super().setUp(persistent)
         try:
             self.connect("apa")
@@ -481,8 +489,10 @@ class TestTwoChannelsStuff(TwoClientsTwoChannelsFixture):
 
 
 class TestPersistentState(ServerFixture):
-    def setUp(self, persistent: bool = True) -> None:
-        super().setUp(persistent)
+    def setUp(
+        self, persistent: bool = True, password: Optional[str] = None
+    ) -> None:
+        super().setUp(persistent, password)
 
     def test_persistent_channel_state(self) -> None:
         self.connect("apa")
@@ -516,3 +526,21 @@ class TestPersistentState(ServerFixture):
 
         self.send("apa", "MODE #fisk")
         self.expect("apa", r":local\S+ 324 apa #fisk \+k skunk")
+
+
+class TestPassword(ServerFixture):
+    def setUp(
+        self, persistent: bool = False, password: Optional[str] = None
+    ) -> None:
+        super().setUp(persistent, password="krokodil")
+
+    def test_no_password(self) -> None:
+        try:
+            self.connect("apa")
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError
+
+    def test_password(self) -> None:
+        self.connect("apa", "krokodil")

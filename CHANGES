@@ -1,3 +1,7 @@
+Unreleased:
+
+  * Fixed matching of connection password (broken since version 2.0).
+
 2.1 (2021-03-08)
 
   * Added --ssl-cert-file and --ssl-key-file arguments.

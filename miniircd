@@ -195,11 +195,10 @@ class Client:
         if command == b"PASS":
             if len(arguments) == 0:
                 self.reply_461(b"PASS")
+            elif arguments[0] == server.password.encode():
+                self.__handle_command = self.__registration_handler
             else:
-                if arguments[0] == server.password:
-                    self.__handle_command = self.__registration_handler
-                else:
-                    self.reply(b"464 :Password incorrect")
+                self.reply(b"464 :Password incorrect")
         elif command == b"QUIT":
             self.disconnect("Client quit")
 
@@ -789,7 +788,7 @@ class Client:
 class Server:
     def __init__(self, args: Namespace) -> None:
         self.ports = args.ports
-        self.password = args.password
+        self.password: str = args.password
         self.ssl_cert_file = args.ssl_cert_file
         self.ssl_key_file = args.ssl_key_file
         self.motdfile = args.motd

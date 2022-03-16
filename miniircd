@@ -108,6 +108,7 @@ class Channel:
         fp.write("topic = %r\n" % self.topic)
         fp.write("key = %r\n" % self.key)
         fp.close()
+        os.remove(self._state_path)
         os.rename(path, self._state_path)
 
 

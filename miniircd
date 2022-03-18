@@ -108,7 +108,7 @@ class Channel:
         fp.write("topic = %r\n" % self.topic)
         fp.write("key = %r\n" % self.key)
         fp.close()
-        os.rename(path, self._state_path)
+        os.replace(path, self._state_path)
 
 
 class Client:

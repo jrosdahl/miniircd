@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2003-2021 Joel Rosdahl
+# Copyright (C) 2003-2022 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -673,7 +673,7 @@ class Client:
 
     def socket_readable_notification(self) -> None:
         try:
-            data = self.socket.recv(2 ** 10)
+            data = self.socket.recv(2**10)
             if self.server.debug:
                 host = self.host.decode(errors="ignore")
                 self.server.print_debug(f"[{host}:{self.port}] -> {data!r}")

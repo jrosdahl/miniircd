@@ -747,7 +747,11 @@ class Client:
         channel_name = irc_lower(channel.name).decode(errors="ignore")
         logname = channel_name.replace("_", "__").replace("/", "_")
         logfile = f"{self.server.channel_log_dir}/{logname}.log"
-        logmsg = format_string.format(timestamp, self.nickname, message)
+        logmsg = format_string.format(
+            timestamp,
+            self.nickname.decode(errors="replace"),
+            message.decode(errors="replace"),
+        )
         with open(logfile, "a") as fp:
             fp.write(logmsg)
 

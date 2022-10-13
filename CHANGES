@@ -1,6 +1,7 @@
 Unreleased:
 
   * Fixed matching of connection password (broken since version 2.0).
+  * Fixed printing of non-ASCII characters to the channel log.
 
 2.1 (2021-03-08)
 

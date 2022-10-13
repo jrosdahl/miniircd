@@ -83,7 +83,7 @@ class ServerFixture:
         self.connections[nick].flush()
 
     def expect(self, nick: str, regexp: str) -> None:
-        def timeout_handler(signum: int, frame: FrameType) -> None:
+        def timeout_handler(signum: int, frame: Optional[FrameType]) -> None:
             raise AssertionError("timeout while waiting for %r" % regexp)
 
         signal.signal(signal.SIGALRM, timeout_handler)

@@ -554,7 +554,7 @@ class Client:
                         True,
                     )
                     self.channel_log(
-                        channel, b"set topic to %r" % newtopic, meta=True
+                        channel, b"set topic to \"%s\"" % newtopic, meta=True
                     )
                 else:
                     if channel.topic:

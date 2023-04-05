@@ -133,6 +133,8 @@ class Client:
             host, port, _, _ = socket.getpeername()
         else:
             host, port = socket.getpeername()
+        assert isinstance(host, str)
+        assert isinstance(port, int)
         self.host = host.encode()
         self.port = port
         if self.server.cloak:
@@ -790,24 +792,24 @@ class Client:
 
 
 class Server:
-    def __init__(self, args: Namespace) -> None:
-        self.ports = args.ports
+    def __init__(self, args: Namespace, ports: Collection[int]) -> None:
+        self.ports = ports
         self.password: str = args.password
-        self.ssl_cert_file = args.ssl_cert_file
-        self.ssl_key_file = args.ssl_key_file
-        self.motdfile = args.motd
-        self.verbose = args.verbose
-        self.ipv6 = args.ipv6
-        self.debug = args.debug
-        self.channel_log_dir = args.channel_log_dir
-        self.chroot = args.chroot
+        self.ssl_cert_file: str = args.ssl_cert_file
+        self.ssl_key_file: str = args.ssl_key_file
+        self.motdfile: str = args.motd
+        self.verbose: bool = args.verbose
+        self.ipv6: bool = args.ipv6
+        self.debug: bool = args.debug
+        self.channel_log_dir: str = args.channel_log_dir
+        self.chroot: str = args.chroot
         self.setuid = args.setuid
-        self.state_dir = args.state_dir
-        self.log_file = args.log_file
-        self.log_max_bytes = args.log_max_size * 1024 * 1024
-        self.log_count = args.log_count
+        self.state_dir: str = args.state_dir
+        self.log_file: str = args.log_file
+        self.log_max_bytes: int = args.log_max_size * 1024 * 1024
+        self.log_count: int = args.log_count
         self.logger: Optional[logging.Logger] = None
-        self.cloak = args.cloak
+        self.cloak: str = args.cloak
         self.name: bytes
 
         if args.password_file:
@@ -1233,8 +1235,8 @@ def main() -> None:
             ports.append(int(port))
         except ValueError:
             ap.error("bad port: %r" % port)
-    args.ports = ports
-    server = Server(args)
+
+    server = Server(args, ports)
     if args.pid_file:
         args.pid_file = os.path.abspath(args.pid_file)
     if args.daemon:

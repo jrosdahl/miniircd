@@ -136,7 +136,7 @@ class Client:
         self.host = host.encode()
         self.port = port
         if self.server.cloak:
-            self.host = self.server.cloak
+            self.host = self.server.cloak.encode()
         self.__timestamp = time.time()
         self.__readbuffer = b""
         self.__writebuffer = b""

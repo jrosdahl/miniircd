@@ -1,5 +1,4 @@
-Development
-===========
+# Development
 
 To install in development mode with all required development and testing
 dependencies:
@@ -13,15 +12,14 @@ To run the tests:
     ./test
 
 
-Packaging
----------
+## Packaging
 
 To build the wheel, first install in development mode with `[dev]` extras. This
-will ensure that pep517 and twine are installed.
+will ensure that build and twine are installed.
 
-Build the wheel with pep517's build command:
+Build the wheel:
 
-    python3 -m pep517.build .
+    python3 -m build .
 
 Upload new the version to PyPI:
 

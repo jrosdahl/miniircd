@@ -795,8 +795,6 @@ class Server:
     def __init__(self, args: Namespace, ports: Collection[int]) -> None:
         self.ports = ports
         self.password: str = args.password
-        self.ssl_cert_file: str = args.ssl_cert_file
-        self.ssl_key_file: str = args.ssl_key_file
         self.motdfile: str = args.motd
         self.verbose: bool = args.verbose
         self.ipv6: bool = args.ipv6
@@ -811,19 +809,29 @@ class Server:
         self.logger: Optional[logging.Logger] = None
         self.cloak: str = args.cloak
         self.name: bytes
+        self.ssl_context: "Optional[ssl.SSLContext]"
 
         if args.password_file:
             with open(args.password_file, "r") as fp:
                 self.password = fp.read().strip("\n")
 
-        if self.ssl_key_file:
-            self.ssl = __import__("ssl")
+        if args.ssl_key_file:
+            import ssl
+
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_default_certs(purpose=ssl.Purpose.SERVER_AUTH)
+            ssl_context.load_cert_chain(
+                certfile=args.ssl_cert_file, keyfile=args.ssl_key_file
+            )
+            self.ssl_context = ssl_context
+        else:
+            self.ssl_context = None
 
         # Find key/cert files after daemonization if path is relative:
-        if self.ssl_cert_file and os.path.exists(self.ssl_cert_file):
-            self.ssl_cert_file = os.path.abspath(self.ssl_cert_file)
-        if self.ssl_key_file and os.path.exists(self.ssl_key_file):
-            self.ssl_key_file = os.path.abspath(self.ssl_key_file)
+        if args.ssl_cert_file and os.path.exists(args.ssl_cert_file):
+            args.ssl_cert_file = os.path.abspath(args.ssl_cert_file)
+        if args.ssl_key_file and os.path.exists(args.ssl_key_file):
+            args.ssl_key_file = os.path.abspath(args.ssl_key_file)
         # else: might exist in the chroot jail, so just continue
 
         if args.listen and self.ipv6:
@@ -1024,31 +1032,7 @@ class Server:
                 if x in self.clients:
                     self.clients[x].socket_readable_notification()
                 else:
-                    conn, addr = x.accept()
-                    if self.ssl_key_file:
-                        try:
-                            conn = self.ssl.wrap_socket(
-                                conn,
-                                server_side=True,
-                                certfile=self.ssl_cert_file,
-                                keyfile=self.ssl_key_file,
-                            )
-                        except Exception as e:
-                            self.print_error(
-                                "SSL error for connection from"
-                                f" {addr[0]}:{addr[1]}: {e}"
-                            )
-                            continue
-                    try:
-                        self.clients[conn] = Client(self, conn)
-                        self.print_info(
-                            f"Accepted connection from {addr[0]}:{addr[1]}."
-                        )
-                    except socket.error:
-                        try:
-                            conn.close()
-                        except Exception:
-                            pass
+                    self._handle_server_socket(x)
             for x in owtd:
                 if x in self.clients:  # client may have been disconnected
                     self.clients[x].socket_writable_notification()
@@ -1057,6 +1041,25 @@ class Server:
                 for client in list(self.clients.values()):
                     client.check_aliveness()
                 last_aliveness_check = now
+
+    def _handle_server_socket(self, server: Socket) -> None:
+        client, addr = server.accept()
+        if self.ssl_context:
+            try:
+                client = self.ssl_context.wrap_socket(client, server_side=True)
+            except Exception as e:
+                self.print_error(
+                    f"SSL error for connection from {addr[0]}:{addr[1]}: {e}"
+                )
+                return
+        try:
+            self.clients[client] = Client(self, client)
+            self.print_info(f"Accepted connection from {addr[0]}:{addr[1]}.")
+        except socket.error:
+            try:
+                client.close()
+            except Exception:
+                pass
 
 
 _ircstring_translation = bytes.maketrans(

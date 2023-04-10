@@ -32,16 +32,12 @@ import time
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Any, Collection, Dict, List, Optional, Sequence, Set
 
 Socket = socket.socket
 
 VERSION = "2.1"
-
-
-def create_directory(path: str) -> None:
-    if not os.path.isdir(path):
-        os.makedirs(path)
 
 
 class Channel:
@@ -51,14 +47,14 @@ class Channel:
         self.members: Set["Client"] = set()
         self._topic = b""
         self._key: Optional[bytes] = None
-        self._state_path: Optional[str]
+        self._state_path: Optional[Path]
         if self.server.state_dir:
             fs_safe_name = (
                 name.decode(errors="ignore")
                 .replace("_", "__")
                 .replace("/", "_")
             )
-            self._state_path = f"{self.server.state_dir}/{fs_safe_name}"
+            self._state_path = self.server.state_dir / fs_safe_name
             self._read_state()
         else:
             self._state_path = None
@@ -90,20 +86,18 @@ class Channel:
             self.server.remove_channel(self)
 
     def _read_state(self) -> None:
-        if not (self._state_path and os.path.exists(self._state_path)):
+        if not (self._state_path and self._state_path.exists()):
             return
         data: Dict[str, Any] = {}
 
-        with open(self._state_path, "rb") as state_file:
-            exec(state_file.read(), {}, data)
-
+        exec(self._state_path.read_bytes(), {}, data)
         self._topic = data.get("topic", "")
         self._key = data.get("key")
 
     def _write_state(self) -> None:
         if not self._state_path:
             return
-        fd, path = tempfile.mkstemp(dir=os.path.dirname(self._state_path))
+        fd, path = tempfile.mkstemp(dir=self._state_path.parent)
         fp = os.fdopen(fd, "w")
         fp.write("topic = %r\n" % self.topic)
         fp.write("key = %r\n" % self.key)
@@ -748,7 +742,7 @@ class Client:
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         channel_name = irc_lower(channel.name).decode(errors="ignore")
         logname = channel_name.replace("_", "__").replace("/", "_")
-        logfile = f"{self.server.channel_log_dir}/{logname}.log"
+        logfile = self.server.channel_log_dir / f"{logname}.log"
         logmsg = format_string.format(
             timestamp,
             self.nickname.decode(errors="replace"),
@@ -795,15 +789,15 @@ class Server:
     def __init__(self, args: Namespace, ports: Collection[int]) -> None:
         self.ports = ports
         self.password: str = args.password
-        self.motdfile: str = args.motd
+        self.motdfile: Path = args.motd
         self.verbose: bool = args.verbose
         self.ipv6: bool = args.ipv6
         self.debug: bool = args.debug
-        self.channel_log_dir: str = args.channel_log_dir
-        self.chroot: str = args.chroot
-        self.setuid = args.setuid
-        self.state_dir: str = args.state_dir
-        self.log_file: str = args.log_file
+        self.channel_log_dir: Path = args.channel_log_dir
+        self.chroot: Path = args.chroot
+        self.setuid: tuple[int, int] = args.setuid
+        self.state_dir: Path = args.state_dir
+        self.log_file: Path = args.log_file
         self.log_max_bytes: int = args.log_max_size * 1024 * 1024
         self.log_count: int = args.log_count
         self.logger: Optional[logging.Logger] = None
@@ -812,8 +806,7 @@ class Server:
         self.ssl_context: "Optional[ssl.SSLContext]"
 
         if args.password_file:
-            with open(args.password_file, "r") as fp:
-                self.password = fp.read().strip("\n")
+            self.password = args.password_file.read_text().strip("\n")
 
         if args.ssl_key_file:
             import ssl
@@ -828,10 +821,10 @@ class Server:
             self.ssl_context = None
 
         # Find key/cert files after daemonization if path is relative:
-        if args.ssl_cert_file and os.path.exists(args.ssl_cert_file):
-            args.ssl_cert_file = os.path.abspath(args.ssl_cert_file)
-        if args.ssl_key_file and os.path.exists(args.ssl_key_file):
-            args.ssl_key_file = os.path.abspath(args.ssl_key_file)
+        if args.ssl_cert_file and args.ssl_cert_file.exists():
+            args.ssl_cert_file = args.ssl_cert_file.resolve()
+        if args.ssl_key_file and args.ssl_key_file.exists():
+            args.ssl_key_file = args.ssl_key_file.resolve()
         # else: might exist in the chroot jail, so just continue
 
         if args.listen and self.ipv6:
@@ -849,9 +842,9 @@ class Server:
         self.clients: Dict[Socket, Client] = {}
         self.nicknames: Dict[bytes, Client] = {}  # key: irc_lower(nickname)
         if self.channel_log_dir:
-            create_directory(self.channel_log_dir)
+            self.channel_log_dir.mkdir(parents=True, exist_ok=True)
         if self.state_dir:
-            create_directory(self.state_dir)
+            self.state_dir.mkdir(parents=True, exist_ok=True)
 
     def make_pid_file(self, filename: str) -> None:
         try:
@@ -859,14 +852,14 @@ class Server:
             os.write(fd, b"%i\n" % os.getpid())
             os.close(fd)
         except Exception:
-            self.print_error("Could not create PID file %r" % filename)
+            self.print_error(f"Could not create PID file {filename!r}")
             sys.exit(1)
 
-    def remove_pid_file(self, filename: str) -> None:
+    def remove_pid_file(self, filename: Path) -> None:
         try:
-            os.remove(filename)
+            filename.unlink()
         except Exception:
-            self.print_error("Could not remove PID file %r" % filename)
+            self.print_error(f"Could not remove PID file {filename!r}")
 
     def daemonize(self) -> None:
         try:
@@ -907,9 +900,9 @@ class Server:
     def get_motd_lines(self) -> Collection[str]:
         if self.motdfile:
             try:
-                return open(self.motdfile).readlines()
+                return self.motdfile.read_text().splitlines()
             except IOError:
-                return ["Could not read MOTD file %r." % self.motdfile]
+                return ["Could not read MOTD file {self.motdfile!r}."]
         else:
             return []
 
@@ -1081,6 +1074,18 @@ def main() -> None:
         "--channel-log-dir",
         metavar="X",
         help="store channel log in directory X",
+        type=Path,
+    )
+    if os.name == "posix":
+        ap.add_argument(
+            "--chroot",
+            metavar="X",
+            help="change filesystem root to directory X after startup"
+            " (requires root)",
+            type=Path,
+        )
+    ap.add_argument(
+        "--cloak", metavar="X", help="report X as the host for all clients"
     )
     ap.add_argument(
         "-d", "--daemon", action="store_true", help="fork and become a daemon"
@@ -1099,7 +1104,9 @@ def main() -> None:
         type=int,
         help="keep X log files; default: %(default)s",
     )
-    ap.add_argument("--log-file", metavar="X", help="store log in file X")
+    ap.add_argument(
+        "--log-file", metavar="X", help="store log in file X", type=Path
+    )
     ap.add_argument(
         "--log-max-size",
         metavar="X",
@@ -1108,9 +1115,14 @@ def main() -> None:
         help="set maximum log file size to X MiB; default: %(default)s MiB",
     )
     ap.add_argument(
-        "--motd", metavar="X", help="display file X as message of the day"
+        "--motd",
+        metavar="X",
+        help="display file X as message of the day",
+        type=Path,
     )
-    ap.add_argument("--pid-file", metavar="X", help="write PID to file X")
+    ap.add_argument(
+        "--pid-file", metavar="X", help="write PID to file X", type=Path
+    )
     ap.add_argument(
         "-p",
         "--password",
@@ -1124,6 +1136,7 @@ def main() -> None:
             "require connection password stored in file X;"
             " default: no password"
         ),
+        type=Path,
     )
     ap.add_argument(
         "--ports",
@@ -1131,48 +1144,43 @@ def main() -> None:
         help="listen to ports X (a list separated by comma or whitespace);"
         " default: 6667 or 6697 if SSL is enabled",
     )
-    ap.add_argument(
-        "--ssl-cert-file",
-        metavar="FILE",
-        help="enable SSL with PEM certificate in FILE",
-    )
-    ap.add_argument(
-        "--ssl-key-file",
-        metavar="FILE",
-        help="enable SSL with PEM key in FILE",
-    )
-    ap.add_argument(
-        "-s",
-        "--ssl-pem-file",
-        metavar="FILE",
-        help="enable SSL with key and certificate combined in FILE",
-    )
-    ap.add_argument(
-        "--state-dir",
-        metavar="X",
-        help="save persistent channel state (topic, key) in directory X",
-    )
-    ap.add_argument(
-        "--verbose",
-        action="store_true",
-        help="be verbose (print some progress messages to stdout)",
-    )
-    ap.add_argument(
-        "--cloak", metavar="X", help="report X as the host for all clients"
-    )
     if os.name == "posix":
-        ap.add_argument(
-            "--chroot",
-            metavar="X",
-            help="change filesystem root to directory X after startup"
-            " (requires root)",
-        )
         ap.add_argument(
             "--setuid",
             metavar="U[:G]",
             help="change process user (and optionally group) after startup"
             " (requires root)",
         )
+    ap.add_argument(
+        "--ssl-cert-file",
+        metavar="FILE",
+        help="enable SSL with PEM certificate in FILE",
+        type=Path,
+    )
+    ap.add_argument(
+        "--ssl-key-file",
+        metavar="FILE",
+        help="enable SSL with PEM key in FILE",
+        type=Path,
+    )
+    ap.add_argument(
+        "-s",
+        "--ssl-pem-file",
+        metavar="FILE",
+        help="enable SSL with key and certificate combined in FILE",
+        type=Path,
+    )
+    ap.add_argument(
+        "--state-dir",
+        metavar="X",
+        help="save persistent channel state (topic, key) in directory X",
+        type=Path,
+    )
+    ap.add_argument(
+        "--verbose",
+        action="store_true",
+        help="be verbose (print some progress messages to stdout)",
+    )
 
     args = ap.parse_args()
 
@@ -1241,7 +1249,7 @@ def main() -> None:
 
     server = Server(args, ports)
     if args.pid_file:
-        args.pid_file = os.path.abspath(args.pid_file)
+        args.pid_file = args.pid_file.resolve()
     if args.daemon:
         server.daemonize()
     if args.pid_file:

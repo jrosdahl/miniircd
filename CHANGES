@@ -1,7 +1,13 @@
-Unreleased:
+2.2 (2023-04-12):
 
+  * Corrected chroot jail examples to use --channel-log-dir.
+  * Fixed typo in LICENSE filename, making "make dist" work again.
   * Fixed matching of connection password (broken since version 2.0).
+  * Fixed stats file update on Windows.
   * Fixed printing of non-ASCII characters to the channel log.
+  * Fixed logging of topic in channel logs.
+  * Fixed byte encoding of cloak.
+  * Avoid using deprecated ssl.wrap_socket.
 
 2.1 (2021-03-08)
 

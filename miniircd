@@ -195,6 +195,9 @@ class Client:
                 self.__handle_command = self.__registration_handler
             else:
                 self.reply(b"464 :Password incorrect")
+        elif command == b"CAP":
+            if len(arguments) > 0 and arguments[0] == b"LS":
+                self.reply(b"CAP * LS :")
         elif command == b"QUIT":
             self.disconnect("Client quit")
 
@@ -220,6 +223,9 @@ class Client:
                 return
             self.user = arguments[0]
             self.realname = arguments[3]
+        elif command == b"CAP":
+            if len(arguments) > 0 and arguments[0] == b"LS":
+                self.reply(b"CAP * LS :")
         elif command == b"QUIT":
             self.disconnect("Client quit")
             return

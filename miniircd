@@ -137,6 +137,7 @@ class Client:
         self.__readbuffer = b""
         self.__writebuffer = b""
         self.__sent_ping = False
+        self.__awaiting_cap_end = False
         if self.server.password:
             self.__handle_command = self.__pass_handler
         else:
@@ -184,6 +185,16 @@ class Client:
                     arguments.append(y[1])
             self.__handle_command(command, arguments)
 
+    def __handle_cap_command(self, arguments: Sequence[bytes]) -> None:
+        if len(arguments) > 0 and arguments[0] == b"LS":
+            self.reply(b"CAP * LS :")
+            self.__awaiting_cap_end = True
+        elif len(arguments) > 1 and arguments[0] == b"REQ":
+            self.reply(b"CAP * NAK :%s" % arguments[1])
+            self.__awaiting_cap_end = True
+        elif len(arguments) > 0 and arguments[0] == b"END":
+            self.__awaiting_cap_end = False
+
     def __pass_handler(
         self, command: bytes, arguments: Sequence[bytes]
     ) -> None:
@@ -196,8 +207,7 @@ class Client:
             else:
                 self.reply(b"464 :Password incorrect")
         elif command == b"CAP":
-            if len(arguments) > 0 and arguments[0] == b"LS":
-                self.reply(b"CAP * LS :")
+            self.__handle_cap_command(arguments)
         elif command == b"QUIT":
             self.disconnect("Client quit")
 
@@ -224,12 +234,11 @@ class Client:
             self.user = arguments[0]
             self.realname = arguments[3]
         elif command == b"CAP":
-            if len(arguments) > 0 and arguments[0] == b"LS":
-                self.reply(b"CAP * LS :")
+            self.__handle_cap_command(arguments)
         elif command == b"QUIT":
             self.disconnect("Client quit")
             return
-        if self.nickname and self.user:
+        if self.nickname and self.user and not self.__awaiting_cap_end:
             self.reply(b"001 %s :Hi, welcome to IRC" % self.nickname)
             self.reply(
                 b"002 %s :Your host is %s, running version miniircd-%s"

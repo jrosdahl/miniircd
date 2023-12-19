@@ -37,7 +37,7 @@ class ServerFixture:
             os.execv("./miniircd", arguments)
         # Parent.
         self.child_pid = pid
-        self.connections: Dict[str, IO] = {}  # nick -> fp
+        self.connections: Dict[str, IO[str]] = {}  # nick -> fp
 
     def connect(self, nick: str, password: Optional[str] = None) -> None:
         assert_not_in(nick, self.connections)

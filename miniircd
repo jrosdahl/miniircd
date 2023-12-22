@@ -37,7 +37,7 @@ from typing import Any, Collection, Dict, List, Optional, Sequence, Set
 
 Socket = socket.socket
 
-VERSION = "2.2"
+VERSION = "2.3"
 
 
 class Channel:

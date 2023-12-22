@@ -1,3 +1,7 @@
+2.3 (2023-12-22):
+
+  * Implemented support for the CAP ("Client Capability Negotiation") commands.
+
 2.2 (2023-04-12):
 
   * Corrected chroot jail examples to use --channel-log-dir.

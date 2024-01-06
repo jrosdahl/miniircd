@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2003-2023 Joel Rosdahl
+# Copyright (C) 2003-2024 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ import string
 import sys
 import tempfile
 import time
-
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
@@ -98,11 +97,10 @@ class Channel:
         if not self._state_path:
             return
         fd, path = tempfile.mkstemp(dir=self._state_path.parent)
-        fp = os.fdopen(fd, "w")
-        fp.write("topic = %r\n" % self.topic)
-        fp.write("key = %r\n" % self.key)
-        fp.close()
-        os.replace(path, self._state_path)
+        with os.fdopen(fd, "w") as f:
+            f.write("topic = %r\n" % self.topic)
+            f.write("key = %r\n" % self.key)
+        Path(path).replace(self._state_path)
 
 
 class Client:
@@ -264,10 +262,7 @@ class Client:
             channelnames = arguments[0].split(b",")
         else:
             channelnames = sorted(self.channels.keys())
-        if len(arguments) > 1:
-            keys = arguments[1].split(b",")
-        else:
-            keys = []
+        keys = arguments[1].split(b",") if len(arguments) > 1 else []
         for i, channelname in enumerate(channelnames):
             if for_join and irc_lower(channelname) in self.channels:
                 continue
@@ -506,14 +501,11 @@ class Client:
             if len(arguments) < 1:
                 self.reply_461(b"PART")
                 return
-            if len(arguments) > 1:
-                partmsg = arguments[1]
-            else:
-                partmsg = self.nickname
+            partmsg = arguments[1] if len(arguments) > 1 else self.nickname
             for channelname in arguments[0].split(b","):
                 if not valid_channel_re.match(channelname):
                     self.reply_403(channelname)
-                elif not irc_lower(channelname) in self.channels:
+                elif irc_lower(channelname) not in self.channels:
                     self.reply(
                         b"442 %s %s :You're not on that channel"
                         % (self.nickname, channelname)
@@ -542,10 +534,7 @@ class Client:
             pass
 
         def quit_handler() -> None:
-            if len(arguments) < 1:
-                quitmsg = self.nickname
-            else:
-                quitmsg = arguments[0]
+            quitmsg = arguments[0] if arguments else self.nickname
             self.disconnect(quitmsg.decode(errors="ignore"))
 
         def topic_handler() -> None:
@@ -689,7 +678,7 @@ class Client:
                 host = self.host.decode(errors="ignore")
                 self.server.print_debug(f"[{host}:{self.port}] -> {data!r}")
             quitmsg = "EOT"
-        except socket.error as e:
+        except OSError as e:
             data = b""
             quitmsg = str(e)
         if data:
@@ -708,7 +697,7 @@ class Client:
                 host = self.host.decode(errors="ignore")
                 self.server.print_debug(f"[{host}:{self.port}] <- {head!r}")
             self.__writebuffer = self.__writebuffer[sent:]
-        except socket.error as x:
+        except OSError as x:
             self.disconnect(str(x))
 
     def disconnect(self, quitmsg: str) -> None:
@@ -750,10 +739,7 @@ class Client:
     ) -> None:
         if not self.server.channel_log_dir:
             return
-        if meta:
-            format_string = "[{}] * {} {}\n"
-        else:
-            format_string = "[{}] <{}> {}\n"
+        format_string = "[{}] * {} {}\n" if meta else "[{}] <{}> {}\n"
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         channel_name = irc_lower(channel.name).decode(errors="ignore")
         logname = channel_name.replace("_", "__").replace("/", "_")
@@ -763,7 +749,7 @@ class Client:
             self.nickname.decode(errors="replace"),
             message.decode(errors="replace"),
         )
-        with open(logfile, "a") as fp:
+        with logfile.open("a") as fp:
             fp.write(logmsg)
 
     def message_related(self, msg: bytes, include_self: bool = False) -> None:
@@ -893,10 +879,10 @@ class Server:
             sys.exit(1)
         os.chdir("/")
         os.umask(0)
-        dev_null = open("/dev/null", "r+")
-        os.dup2(dev_null.fileno(), sys.stdout.fileno())
-        os.dup2(dev_null.fileno(), sys.stderr.fileno())
-        os.dup2(dev_null.fileno(), sys.stdin.fileno())
+        with Path("/dev/null").open("r+") as f:
+            os.dup2(f.fileno(), sys.stdout.fileno())
+            os.dup2(f.fileno(), sys.stderr.fileno())
+            os.dup2(f.fileno(), sys.stdin.fileno())
 
     def get_client(self, nickname: bytes) -> Optional[Client]:
         return self.nicknames.get(irc_lower(nickname))
@@ -916,7 +902,7 @@ class Server:
         if self.motdfile:
             try:
                 return self.motdfile.read_text().splitlines()
-            except IOError:
+            except OSError:
                 return ["Could not read MOTD file {self.motdfile!r}."]
         else:
             return []
@@ -976,7 +962,7 @@ class Server:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 s.bind((self.address, port))
-            except socket.error as e:
+            except OSError as e:
                 self.print_error(f"Could not bind port {port}: {e}.")
                 sys.exit(1)
             s.listen(5)
@@ -1063,7 +1049,7 @@ class Server:
         try:
             self.clients[client] = Client(self, client)
             self.print_info(f"Accepted connection from {addr[0]}:{addr[1]}.")
-        except socket.error:
+        except OSError:
             try:
                 client.close()
             except Exception:
@@ -1222,8 +1208,8 @@ def main() -> None:
     if args.chroot and os.getuid() != 0:
         ap.error("Must be root to use --chroot")
     if args.setuid:
-        from pwd import getpwnam
         from grp import getgrnam
+        from pwd import getpwnam
 
         if os.getuid() != 0:
             ap.error("Must be root to use --setuid")

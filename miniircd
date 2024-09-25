@@ -1037,7 +1037,12 @@ class Server:
                 last_aliveness_check = now
 
     def _handle_server_socket(self, server: Socket) -> None:
-        client, addr = server.accept()
+        try:
+            client, addr = server.accept()
+        except ConnectionAbortedError as e:
+            self.print_error(f"accept() connection aborted error: {e}")
+            return
+
         if self.ssl_context:
             try:
                 client = self.ssl_context.wrap_socket(client, server_side=True)
